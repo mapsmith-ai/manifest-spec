@@ -1,0 +1,13 @@
+{
+  "missing-spec-version.json": "spec_version",
+  "backslash-path.json": "backslash",
+  "uppercase-sha256.json": "lowercase hex",
+  "short-sha256.json": "64",
+  "empty-verification.json": "at least one",
+  "engine-without-version.json": "engine.version",
+  "finished-before-started.json": "precedes",
+  "local-timezone.json": "UTC",
+  "missing-parameters.json": "parameters",
+  "check-without-detail.json": "detail",
+  "wrong-major-version.json": "1.x"
+}

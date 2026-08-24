@@ -1,0 +1,13 @@
+# Tooling configuration only: this repository is a specification, not a package.
+# The validator is a single file people copy or run in place — packaging it
+# would add a dependency to the thing whose point is having none.
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

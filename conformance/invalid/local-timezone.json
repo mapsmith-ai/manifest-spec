@@ -1,0 +1,50 @@
+{
+  "spec_version": "1.0.0-draft.1",
+  "operation": "watershed",
+  "parameters": {
+    "method": "d8",
+    "n_pour_points": 6
+  },
+  "inputs": [
+    {
+      "path": "fixtures/dem.tif",
+      "sha256": "166b1e4e7bc975d81ba049311c5713365e090dd1e8944a944ca241acf22633fa",
+      "crs": "EPSG:32610"
+    },
+    {
+      "path": "data/outlets.gpkg",
+      "sha256": "81eecd77a2cc680577bcaaefb662943f50535291ccf0ff52f350a353f4e344ef",
+      "crs": "EPSG:32610",
+      "layer": "outlets"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:32610",
+    "reason": "pour points and DEM share the same CRS"
+  },
+  "engine": {
+    "name": "whitebox-workflows",
+    "version": "2.0.6"
+  },
+  "verification": [
+    {
+      "name": "crs_present",
+      "passed": true,
+      "detail": "EPSG:32610",
+      "critical": true,
+      "hint": null,
+      "argument": null
+    },
+    {
+      "name": "values_in_expected_range",
+      "passed": true,
+      "detail": "valid cells in [1, 6], expected [1, 6]"
+    }
+  ],
+  "started_at": "2026-08-23T10:12:04Z",
+  "finished_at": "2026-08-23T12:12:09+02:00",
+  "producer": {
+    "name": "mapsmith",
+    "version": "0.2.2"
+  }
+}

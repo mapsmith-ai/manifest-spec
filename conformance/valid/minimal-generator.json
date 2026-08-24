@@ -1,0 +1,19 @@
+{
+  "spec_version": "1.0.0-draft.1",
+  "operation": "generate_grid",
+  "parameters": {},
+  "inputs": [],
+  "engine": {
+    "name": "toolbox",
+    "version": "1.0"
+  },
+  "verification": [
+    {
+      "name": "row_count",
+      "passed": true,
+      "detail": "100 rows as requested"
+    }
+  ],
+  "started_at": "2026-08-23T10:00:00Z",
+  "finished_at": "2026-08-23T10:00:00Z"
+}

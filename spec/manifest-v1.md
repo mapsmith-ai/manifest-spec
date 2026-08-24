@@ -1,0 +1,131 @@
+# Provenance manifests for geospatial datasets — v1.0.0-draft.1
+
+**Status: draft.** Field names and semantics may still change; anything that does will be
+visible in this repository's history. The draft label comes off when a second, independent
+implementation emits conforming records.
+
+## 1. What this is
+
+A provenance manifest is one JSON document written **next to one output dataset**, recording what
+was done to produce it: the inputs with their checksums, the exact parameters, the engine and its
+version, the coordinate-system decisions and why, and the deterministic checks that ran on the
+result — pass or fail.
+
+The bar it aims at: **someone who was not there can re-run the operation and disagree with it.**
+That is a higher bar than being able to read what happened, and every mandatory field exists to
+clear it.
+
+One thing this format deliberately does not claim: **a manifest records what was done; it does
+not certify that it was right.** A record can carry seven passing checks next to a wrong number
+if none of the checks looks at the number. Measuring that second property is a job for evaluation
+suites (see [Argleton](https://argleton.org), whose first published result demonstrates exactly
+this gap — on the software this specification was extracted from).
+
+## 2. Terminology
+
+The key words MUST, MUST NOT, SHOULD, and MAY are to be interpreted as described in RFC 2119.
+
+- **Producer** — software that emits manifests.
+- **Consumer** — software or person that reads them.
+- **Engine** — the software that computed the result, as distinct from the producer that
+  orchestrated it and wrote the record.
+
+## 3. The record
+
+The normative contract is the JSON Schema in
+[`schema/manifest-v1.schema.json`](../schema/manifest-v1.schema.json); this section explains the
+intent. Where the two disagree, the schema wins and the disagreement is a bug in this document.
+
+### 3.1 Placement and naming
+
+A manifest describes exactly one output dataset. Producers SHOULD write it beside the output as
+`<output-filename>.provenance.json`. A manifest MUST be written even when verification fails:
+the audit trail has to survive the error it documents.
+
+### 3.2 Mandatory fields
+
+| field | what it records |
+|---|---|
+| `spec_version` | The version of this specification. The one field that can never be optional: without it, a record cannot be interpreted once the format has more than one version. |
+| `operation` | What was done, as a stable identifier. Producers choose their vocabulary. |
+| `parameters` | The parameters the engine **ran with** — not the ones requested. Present even when empty: an absent field cannot be told apart from "nobody recorded them". |
+| `inputs[]` | Every dataset read, each with `path` and `sha256`. May be empty for pure generators. |
+| `engine` | `name` and `version` of what computed the result. An engine without a version is not reproducible, only imitable. |
+| `verification[]` | At least one deterministic check, with `name`, `passed`, `detail`. Failed checks MUST be recorded, not suppressed. |
+| `started_at`, `finished_at` | RFC 3339, UTC only. `finished_at` MUST NOT precede `started_at`. |
+
+### 3.3 Field semantics that are easy to get wrong
+
+**Paths use `/` as the only separator, on every platform.** A path carrying the host's separator
+makes two manifests for the same run on the same bytes differ in a field that describes nothing
+about the computation — and gives any consumer keying on paths two entries for one file. This
+rule exists because the reference implementation shipped without it and the defect was found the
+day the manifest went on a web page. Paths are otherwise recorded **as given**: rewriting an
+absolute path to a relative one, or the reverse, would misstate what ran.
+
+**`sha256` is of the bytes, not the file identity.** Lowercase hex, 64 characters. A manifest
+whose input has been edited since stops matching, and says so. For container formats holding
+multiple layers, the checksum necessarily covers the whole container; the RECOMMENDED
+`inputs[].layer` field records which layer was actually read, because without it an auditor
+holding a five-layer container cannot tell which layer produced the numbers.
+
+**Timestamps are UTC and end in `Z`.** Local times make two manifests disagree about the order
+of events depending on where they are read.
+
+**`verification[].detail` is prose, not a boolean.** "expected EPSG:32610, got EPSG:32610" can
+be argued with; `true` cannot. A check that only reports *that* something passed wastes the
+diagnosis it already has.
+
+### 3.4 Recommended fields
+
+`crs_decisions` (each decision **with its reason** — the what without the why loses the part an
+auditor needs), `notes` (how inputs were handled before the engine saw them), `repairs` (every
+mechanical repair, disclosed — an undisclosed repair makes the manifest describe a file that
+never existed), `parameters_redacted` (true when redaction changed anything: a record that
+silently differs from what ran is a worse defect than the secret it protects), `producer`
+(the emitting software, as distinct from the engine).
+
+### 3.5 Extensions
+
+Unknown fields are permitted everywhere; consumers MUST ignore fields they do not understand.
+Producers adding their own fields SHOULD choose names unlikely to collide with future versions of
+this specification (a producer prefix does this well). A field defined here MUST NOT be reused
+with different semantics.
+
+## 4. Conformance
+
+**A conforming record** validates against the schema and satisfies the semantic rules a schema
+cannot express: `finished_at >= started_at`.
+
+**A conforming producer** emits a conforming record for every dataset it writes, including
+failed runs.
+
+**A conforming consumer** accepts any conforming record, ignores unknown fields, and does not
+require any recommended field.
+
+The [`conformance/`](../conformance/) directory holds records that MUST validate and records that
+MUST be rejected, each rejection with its expected reason. A validator that disagrees with that
+directory is wrong, whoever wrote it — including us. The standalone validator in
+[`validator/`](../validator/) implements this specification with no dependencies; the schema and
+the validator are independent implementations, kept in agreement by the conformance suite.
+
+## 5. Versioning
+
+Semantic versioning on the specification itself. Within major version 1: adding optional fields
+is a minor bump; clarifying prose without changing meaning is a patch; anything that makes a
+previously conforming record non-conforming is a new major version. `spec_version` in each record
+names what the producer targeted; the schema for major version 1 accepts any `1.x.y`.
+
+## 6. What is deliberately out of scope
+
+- **Chaining and graphs.** A manifest describes one operation. Multi-step lineage is expressible
+  by pointing an input's `path` at a dataset that has its own manifest; a dedicated plan-level
+  format may standardise more later, informed by use.
+- **Signatures and attestation.** Integrity of the manifest itself is a transport and storage
+  concern; formats exist for it and this one composes with them rather than duplicating them.
+- **Semantics of operations.** What `watershed` means is between the producer and its
+  documentation; this format records that it happened, with what, and what was checked.
+
+## Licence
+
+This document: CC-BY-4.0. The schema, validator, conformance fixtures and examples: Apache-2.0.
