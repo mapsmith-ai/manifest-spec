@@ -18,7 +18,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-SPEC_VERSION = "1.0.0-draft.1"
+SPEC_VERSION = "1.0.0-draft.2"
 
 
 def _utcnow() -> str:
@@ -59,6 +59,9 @@ def emit_manifest(
             for p in inputs
         ],
         "engine": engine,
+        # The digest of the thing the record sits beside: without it a consumer
+        # cannot verify the sidecar describes these bytes.
+        "output": {"path": output.as_posix(), "sha256": _sha256(output)},
         "verification": checks,
         "started_at": started_at,
         "finished_at": _utcnow(),

@@ -9,5 +9,7 @@
   "local-timezone.json": "UTC",
   "missing-parameters.json": "parameters",
   "check-without-detail.json": "detail",
-  "wrong-major-version.json": "1.x"
+  "wrong-major-version.json": "1.x",
+  "output-backslash-path.json": "backslash",
+  "output-short-sha256.json": "64"
 }

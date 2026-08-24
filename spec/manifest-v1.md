@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.1
+# Provenance manifests for geospatial datasets — v1.0.0-draft.2
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -78,6 +78,12 @@ diagnosis it already has.
 
 ### 3.4 Recommended fields
 
+**`output`** — the `path` and `sha256` of the dataset this record sits beside. Without it, a
+consumer cannot verify that the sidecar describes the bytes next to it, and the record cannot be
+wrapped in an in-toto attestation (whose `subject` requires a digest — see §8). Recommended
+rather than mandatory only because a producer may emit the manifest before the output is durably
+on disk; when the digest can be computed, it SHOULD be.
+
 `crs_decisions` (each decision **with its reason** — the what without the why loses the part an
 auditor needs), `notes` (how inputs were handled before the engine saw them), `repairs` (every
 mechanical repair, disclosed — an undisclosed repair makes the manifest describe a file that
@@ -125,6 +131,39 @@ names what the producer targeted; the schema for major version 1 accepts any `1.
   concern; formats exist for it and this one composes with them rather than duplicating them.
 - **Semantics of operations.** What `watershed` means is between the producer and its
   documentation; this format records that it happened, with what, and what was checked.
+
+## 7. Prior art, and why this format exists anyway
+
+The right first question about a new format is "why not the existing one?", so here is the
+honest survey (full census with sources: the reference implementation's research notes). The
+case to cover: a file beside the output, checkable offline, with input digests and
+verification checks recorded pass or fail.
+
+| neighbour | what it has | why it does not cover the case |
+|---|---|---|
+| **W3C PROV** (PROV-JSON / PROV-JSONLD) | the provenance vocabulary | both JSON serialisations are Member Submissions (2013, 2024), not Recommendations; the Entity/Activity/Agent graph has no native place for content digests or pass/fail checks, and a minimal emitter is far from a hundred lines |
+| **STAC** + `processing` extension | the geospatial cataloguing world | `processing:lineage` is **free text** ("free text information about how observations were processed", v1.2.0); parameters, input digests and checks have no structured home |
+| **OpenLineage** | the closest thing to `verification[]` (the `dataQualityAssertions` facet) | an event stream to a backend, not a file beside the output; datasets are identified by namespace and name, **not by content digest** |
+| **in-toto attestations** | subject and materials with sha256 digests, huge adoption | built for software supply chains: no operation semantics, no CRS, no verification checks — it is a wrapper, not a record (and a good wrapper: §8) |
+| **ISO 19115 / OGC lineage** | the formal geographic-metadata lineage model | XML lineage historically; recent OGC testbed work demonstrates provenance in OGC API — Processes and itself concludes that consistent guidance is missing |
+
+Nothing in the Model Context Protocol space covers this either; the question has been asked
+there and is open. If any of these grows to cover the case, the right move is to adopt it and
+retire this document — that is what the draft label is for.
+
+## 8. Composing with the neighbours
+
+This format is designed to sit **inside** the adjacent standards rather than compete with them.
+
+**in-toto**: a manifest becomes the `predicate` of an in-toto Statement; the Statement's
+`subject` is the output dataset with the same sha256 the manifest's `output` field carries, and
+`predicateType` is a versioned URI naming this specification. That is the upgrade path to signed
+provenance: nothing in the record changes, it gains an envelope.
+
+**STAC**: a STAC Item SHOULD reference the manifest as an asset
+(`"roles": ["metadata"]`), placing a checkable record behind a catalogue entry whose own
+`processing:lineage` remains prose. The `file:checksum` of the output asset (Multihash) and the
+manifest's `output.sha256` describe the same bytes in two encodings; consumers can cross-check.
 
 ## Licence
 

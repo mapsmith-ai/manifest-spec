@@ -89,6 +89,22 @@ def problems(record: object) -> list[str]:
             need("passed", bool, check, label)
             need("detail", str, check, label)
 
+    if "output" in record:
+        out_field = record["output"]
+        if not isinstance(out_field, dict):
+            out.append("`output` must be an object")
+        else:
+            if need("path", str, out_field, "output"):
+                if not out_field["path"]:
+                    out.append("`output.path` must not be empty")
+                if "\\" in out_field["path"]:
+                    out.append("`output.path` carries a backslash: paths use `/` as the "
+                               "only separator on every platform")
+            if need("sha256", str, out_field, "output") and not SHA256.fullmatch(
+                out_field["sha256"]
+            ):
+                out.append("`output.sha256` must be 64 lowercase hex characters")
+
     stamps = {}
     for field in ("started_at", "finished_at"):
         if need(field, str) and not TIMESTAMP.fullmatch(record[field]):
