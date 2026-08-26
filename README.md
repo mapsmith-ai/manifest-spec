@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.1",
+  "spec_version": "1.0.0-draft.2",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,7 +21,7 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.1`). Field names may still change; anything that does is visible
+**Status: draft** (`1.0.0-draft.2`). Field names may still change; anything that does is visible
 in this repository's history.
 
 ## What is in this repository
