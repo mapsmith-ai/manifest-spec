@@ -9,7 +9,7 @@
   },
   "verification": [
     {
-      "name": "row_count",
+      "name": "row_count_exact",
       "passed": true,
       "detail": "100 rows as requested"
     }

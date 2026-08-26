@@ -95,7 +95,9 @@ if __name__ == "__main__":
         inputs=[source],
         engine={"name": "shutil", "version": "3"},
         checks=[{
-            "name": "bytes_identical",
+            # Not a core name from section 3.6, so it carries the producer prefix the
+        # spec requires. This is the whole extension rule, in one line.
+        "name": "x-emitter-minimal:bytes_identical",
             "passed": same,
             "detail": "sha256(output) == sha256(input)" if same else "checksums differ",
         }],

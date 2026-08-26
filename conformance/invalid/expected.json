@@ -11,5 +11,6 @@
   "check-without-detail.json": "detail",
   "wrong-major-version.json": "1.x",
   "output-backslash-path.json": "backslash",
-  "output-short-sha256.json": "64"
+  "output-short-sha256.json": "64",
+  "check-name-outside-vocabulary.json": "neither a core check name"
 }

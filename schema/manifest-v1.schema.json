@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mapsmith.dev/spec/manifest-v1.schema.json",
   "title": "Provenance manifest for a geospatial dataset",
-  "description": "One record, written next to one output dataset, complete enough that someone who was not there can re-run the operation and disagree with it. A manifest records what was done; it does not certify that it was right \u2014 those are different claims, and this format only makes the first.",
+  "description": "One record, written next to one output dataset, complete enough that someone who was not there can re-run the operation and disagree with it. A manifest records what was done; it does not certify that it was right — those are different claims, and this format only makes the first.",
   "type": "object",
   "required": [
     "spec_version",
@@ -28,7 +28,7 @@
     },
     "parameters": {
       "type": "object",
-      "description": "The exact parameters the engine ran with \u2014 not the ones requested, the ones used. May be empty, but must be present: an absent field cannot be told apart from 'nobody recorded them'."
+      "description": "The exact parameters the engine ran with — not the ones requested, the ones used. May be empty, but must be present: an absent field cannot be told apart from 'nobody recorded them'."
     },
     "inputs": {
       "type": "array",
@@ -89,7 +89,7 @@
           "description": "SHA-256 of the output's bytes at the moment the manifest was written."
         }
       },
-      "description": "RECOMMENDED. The digest of the dataset this record sits beside. Without it, a consumer cannot verify that the sidecar describes the bytes next to it \u2014 and the record cannot be wrapped in an in-toto attestation, whose subject requires a digest. Recommended rather than mandatory only because a producer may emit the manifest before the output is durably on disk; when it can be computed, it should be."
+      "description": "RECOMMENDED. The digest of the dataset this record sits beside. Without it, a consumer cannot verify that the sidecar describes the bytes next to it — and the record cannot be wrapped in an in-toto attestation, whose subject requires a digest. Recommended rather than mandatory only because a producer may emit the manifest before the output is durably on disk; when it can be computed, it should be."
     },
     "engine": {
       "type": "object",
@@ -109,12 +109,12 @@
           "description": "Which build produced the numbers. Algorithms change between releases, and so do their outputs; an engine without a version is not reproducible, only imitable."
         }
       },
-      "description": "The software that computed the result \u2014 the engine, not the orchestrator that called it."
+      "description": "The software that computed the result — the engine, not the orchestrator that called it."
     },
     "verification": {
       "type": "array",
       "minItems": 1,
-      "description": "Deterministic checks that ran on the result, recorded whether they passed or failed. At least one: a manifest with no checks at all is a log entry wearing a manifest's clothes. Failed checks MUST be recorded rather than suppressed \u2014 the audit trail has to survive the error it documents.",
+      "description": "Deterministic checks that ran on the result, recorded whether they passed or failed. At least one: a manifest with no checks at all is a log entry wearing a manifest's clothes. Failed checks MUST be recorded rather than suppressed — the audit trail has to survive the error it documents.",
       "items": {
         "type": "object",
         "required": [
@@ -126,8 +126,30 @@
         "properties": {
           "name": {
             "type": "string",
-            "minLength": 1,
-            "description": "A stable code a consumer can branch on (e.g. `crs_present`)."
+            "description": "A stable code a consumer can branch on. MUST be one of the core names in section 3.6 of the specification, or an extension named `x-<producer>:<name>`. A name that is neither is a conformance error: an unconstrained vocabulary makes two records incomparable, which is the point of having a format.",
+            "anyOf": [
+              {
+                "enum": [
+                  "crs_present",
+                  "crs_matches",
+                  "geometry_valid",
+                  "feature_count_exact",
+                  "feature_count_bounded",
+                  "row_count_exact",
+                  "result_not_empty",
+                  "extent_within_expected",
+                  "shape_preserved",
+                  "values_in_expected_range",
+                  "input_crs_present",
+                  "input_not_empty",
+                  "inputs_may_intersect",
+                  "geometry_types"
+                ]
+              },
+              {
+                "pattern": "^x-[a-z0-9][a-z0-9_-]*:[a-z0-9][a-z0-9_]*$"
+              }
+            ]
           },
           "passed": {
             "type": "boolean"
@@ -168,7 +190,17 @@
     },
     "crs_decisions": {
       "type": "object",
-      "description": "RECOMMENDED. Coordinate-system decisions and the reason for each, in words. Silent reprojection is the most expensive habit in the field, and a bare CRS name records the what while losing the why.",
+      "description": "RECOMMENDED. Coordinate-system decisions and the reason for each, in words. Silent reprojection is the most expensive habit in the field, and a bare CRS name records the what while losing the why. Section 3.7 fixes the keys.",
+      "properties": {
+        "analysis_crs": {
+          "type": "string",
+          "description": "The coordinate system the operation actually computed in."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why that system, in words a reader can check, naming the alternative rejected where there was one."
+        }
+      },
       "additionalProperties": {
         "type": "string"
       }

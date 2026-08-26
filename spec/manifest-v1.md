@@ -98,10 +98,70 @@ Producers adding their own fields SHOULD choose names unlikely to collide with f
 this specification (a producer prefix does this well). A field defined here MUST NOT be reused
 with different semantics.
 
+### 3.6 Check names: a closed core, and prefixed extensions
+
+`verification[].name` is the field a consumer branches on, so it is the one field whose *values*
+this specification constrains. Without that, two conforming records cannot be compared, and the
+question an auditor actually asks — *does this system check X?* — has no mechanical answer.
+
+**The core.** These names have fixed meaning. A producer that performs the corresponding check
+MUST use the core name for it, and MUST NOT use a core name for anything else.
+
+| name | passes when |
+|---|---|
+| `crs_present` | the output declares a coordinate reference system |
+| `crs_matches` | the output's CRS is the one the operation was meant to produce |
+| `geometry_valid` | no geometry in the output is invalid under OGC simple-features rules |
+| `feature_count_exact` | the output's feature count equals a count derived before the operation ran |
+| `feature_count_bounded` | the output's feature count respects a bound derived before the operation ran (e.g. a clip cannot grow) |
+| `row_count_exact` | a tabular output's row count equals a count derived before the operation ran — the counterpart of `feature_count_exact` for records that carry no geometry |
+| `result_not_empty` | the output contains at least one feature or one valid cell |
+| `extent_within_expected` | the output's extent lies inside the extent the operation could produce |
+| `shape_preserved` | a raster output has the same grid dimensions as its input |
+| `values_in_expected_range` | every value in the output lies within a range the operation guarantees |
+| `input_crs_present` | every input declares a coordinate reference system — a precondition, checked before the operation runs |
+| `input_not_empty` | no input is empty — a precondition, and usually a warning rather than a failure |
+| `inputs_may_intersect` | the inputs' extents overlap, so an empty result would be a finding rather than the obvious outcome |
+| `geometry_types` | the output's geometry types are the ones the operation produces |
+
+The last four describe **preconditions** — checks on the inputs, before the operation. They are
+in the core because the distinction between checking what you were given and checking what you
+produced belongs to the format, not to one implementation.
+
+A producer performing none of these is unusual but conforming: the core constrains *naming*, not
+*behaviour*. What it forbids is calling a CRS check `check_1`, or calling something else
+`crs_present`.
+
+**Extensions.** Any other check MUST be named `x-<producer>:<name>` — for example
+`x-mapsmith:no_invented_class_codes`. A name that is neither in the core nor prefixed is a
+conformance error: without that rule the vocabulary becomes, one producer at a time, no
+vocabulary at all.
+
+The core is deliberately small. A check enters it only if an independent producer could
+reasonably compute the same thing and mean the same by it; anything that depends on one
+implementation's internals stays an extension, however useful.
+
+### 3.7 `crs_decisions`: the shape
+
+`crs_decisions` is where this format earns its keep, so its structure is specified rather than
+left to each producer. It is an object of string values, and when a producer records a decision
+it SHOULD use these keys:
+
+| key | holds |
+|---|---|
+| `analysis_crs` | the coordinate system the operation actually computed in |
+| `reason` | why that system, in words a reader can check — naming the alternative rejected, where there was one |
+
+Additional keys are permitted under the extension rule above. Two things this field is not: a
+place for the output CRS (that belongs in `output`), and a place for a CRS name with no
+justification. *"Reprojected to EPSG:32632"* records the what and loses the why, which is the half
+that cannot be recovered from the data afterwards.
+
 ## 4. Conformance
 
 **A conforming record** validates against the schema and satisfies the semantic rules a schema
-cannot express: `finished_at >= started_at`.
+cannot express: `finished_at >= started_at`, and every `verification[].name` is either a core name
+from §3.6 or carries an `x-<producer>:` prefix.
 
 **A conforming producer** emits a conforming record for every dataset it writes, including
 failed runs.
