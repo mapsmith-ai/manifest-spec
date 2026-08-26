@@ -173,7 +173,8 @@ The [`conformance/`](../conformance/) directory holds records that MUST validate
 MUST be rejected, each rejection with its expected reason. A validator that disagrees with that
 directory is wrong, whoever wrote it — including us. The standalone validator in
 [`validator/`](../validator/) implements this specification with no dependencies; the schema and
-the validator are independent implementations, kept in agreement by the conformance suite.
+the validator are independent implementations, kept in agreement by a conformance suite that
+mutates every field the schema declares and requires **both** to reject it.
 
 ## 5. Versioning
 

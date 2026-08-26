@@ -1,16 +1,19 @@
 {
-  "missing-spec-version.json": "spec_version",
   "backslash-path.json": "backslash",
-  "uppercase-sha256.json": "lowercase hex",
-  "short-sha256.json": "64",
+  "check-name-outside-vocabulary.json": "neither a core check name",
+  "check-without-detail.json": "detail",
+  "crs-decision-not-a-string.json": "`crs_decisions.analysis_crs` must be a string",
   "empty-verification.json": "at least one",
   "engine-without-version.json": "engine.version",
   "finished-before-started.json": "precedes",
+  "layer-not-a-string.json": "`inputs[1].layer` must be a string or null",
   "local-timezone.json": "UTC",
   "missing-parameters.json": "parameters",
-  "check-without-detail.json": "detail",
-  "wrong-major-version.json": "1.x",
+  "missing-spec-version.json": "spec_version",
   "output-backslash-path.json": "backslash",
   "output-short-sha256.json": "64",
-  "check-name-outside-vocabulary.json": "neither a core check name"
+  "producer-not-an-object.json": "`producer` has the wrong type",
+  "short-sha256.json": "64",
+  "uppercase-sha256.json": "lowercase hex",
+  "wrong-major-version.json": "1.x"
 }

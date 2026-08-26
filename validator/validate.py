@@ -49,6 +49,27 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 TIMESTAMP = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$")
 
 
+def _optional(
+    out: list[str], where: dict, field: str, kinds: type | tuple, label: str = ""
+) -> bool:
+    """A field that is not required but IS typed. Absent is fine; wrong is not.
+
+    RECOMMENDED is not the same as unchecked, and until 2026-08-26 here it was:
+    this file looked only at the required fields, so a record carrying
+    `producer` as a string, or `crs_decisions.analysis_crs` as a number, passed
+    here and failed against the schema. Twelve mutations out of fifteen
+    disagreed that way — which made the claim at the top of this file, two
+    implementations kept in agreement, false about its own subject.
+    """
+    if field not in where:
+        return False
+    if not isinstance(where[field], kinds):
+        prefix = f"{label}." if label else ""
+        out.append(f"`{prefix}{field}` has the wrong type")
+        return False
+    return True
+
+
 def problems(record: object) -> list[str]:
     """Every way this record fails to conform, in schema order. Empty = conforming."""
     out: list[str] = []
@@ -91,6 +112,9 @@ def problems(record: object) -> list[str]:
                     )
             if need("sha256", str, item, label) and not SHA256.fullmatch(item["sha256"]):
                 out.append(f"`{label}.sha256` must be 64 lowercase hex characters")
+            for field in ("crs", "layer"):
+                if item.get(field) is not None and not isinstance(item[field], str):
+                    out.append(f"`{label}.{field}` must be a string or null")
 
     if need("engine", dict):
         for field in ("name", "version"):
@@ -121,6 +145,10 @@ def problems(record: object) -> list[str]:
                     )
             need("passed", bool, check, label)
             need("detail", str, check, label)
+            _optional(out, check, "critical", bool, label)
+            for field in ("hint", "argument"):
+                if check.get(field) is not None and not isinstance(check[field], str):
+                    out.append(f"`{label}.{field}` must be a string or null")
 
     if "output" in record:
         out_field = record["output"]
@@ -137,6 +165,29 @@ def problems(record: object) -> list[str]:
                 out_field["sha256"]
             ):
                 out.append("`output.sha256` must be 64 lowercase hex characters")
+
+    # The RECOMMENDED fields of section 3.4. Optional to emit, typed once
+    # emitted: a consumer that finds `notes` holding a bare string instead of a
+    # list has to guess, and guessing is what this format exists to remove.
+    if _optional(out, record, "crs_decisions", dict):
+        for key, value in record["crs_decisions"].items():
+            if not isinstance(value, str):
+                out.append(
+                    f"`crs_decisions.{key}` must be a string: section 3.7 fixes the keys, "
+                    "and the values are prose a reader can check"
+                )
+    if _optional(out, record, "notes", list):
+        for n, note in enumerate(record["notes"]):
+            if not isinstance(note, str):
+                out.append(f"`notes[{n}]` must be a string")
+    if _optional(out, record, "repairs", list):
+        for n, repair in enumerate(record["repairs"]):
+            if not isinstance(repair, dict):
+                out.append(f"`repairs[{n}]` must be an object")
+    _optional(out, record, "parameters_redacted", bool)
+    if _optional(out, record, "producer", dict):
+        for field in ("name", "version"):
+            _optional(out, record["producer"], field, str, "producer")
 
     stamps = {}
     for field in ("started_at", "finished_at"):

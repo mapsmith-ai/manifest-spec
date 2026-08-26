@@ -34,9 +34,10 @@ in this repository's history.
 | [`conformance/`](conformance/) | Records that MUST validate and records that MUST be rejected, each with its expected reason |
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 
-The schema and the validator are **independent implementations**, kept in agreement by the
-conformance suite: a record one accepts and the other rejects is a bug in one of them, and the
-suite says which. A validator that disagrees with `conformance/` is wrong, whoever wrote it —
+The schema and the validator are **independent implementations**, kept in agreement by a
+conformance suite that mutates every field the schema declares — required and recommended — and
+requires **both** to reject it. A record one accepts and the other rejects is a bug in one of
+them, and the suite says which one is the lenient one. A validator that disagrees with `conformance/` is wrong, whoever wrote it —
 including us.
 
 ## What a manifest does not claim
