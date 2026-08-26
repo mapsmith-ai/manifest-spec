@@ -1,5 +1,5 @@
 {
-  "spec_version": "1.0.0-draft.1",
+  "spec_version": "1.0.0-draft.3",
   "operation": "generate_grid",
   "parameters": {},
   "inputs": [],

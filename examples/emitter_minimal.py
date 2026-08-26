@@ -18,7 +18,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-SPEC_VERSION = "1.0.0-draft.2"
+SPEC_VERSION = "1.0.0-draft.3"
 
 
 def _utcnow() -> str:
@@ -41,6 +41,8 @@ def emit_manifest(
     engine: dict,
     checks: list[dict],
     started_at: str,
+    crs_decisions: dict | None = None,
+    environment: dict | None = None,
 ) -> Path:
     """Write ``<output>.provenance.json`` beside the output, and return its path.
 
@@ -67,6 +69,14 @@ def emit_manifest(
         "finished_at": _utcnow(),
         "producer": {"name": "emitter-minimal", "version": "1.0"},
     }
+    # The two recommended fields section 3.7 and 3.8 exist for. Omitted when the
+    # producer has nothing to say -- an empty object claims nothing, and claiming
+    # nothing is honest. Included here because a reference emitter that never
+    # emits the interesting fields teaches implementers to skip them.
+    if crs_decisions:
+        record["crs_decisions"] = crs_decisions
+    if environment:
+        record["environment"] = environment
     manifest = output.with_name(output.name + ".provenance.json")
     manifest.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     return manifest

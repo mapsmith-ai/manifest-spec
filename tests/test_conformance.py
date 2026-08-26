@@ -99,6 +99,55 @@ def test_the_minimal_emitter_emits_conforming_records(tmp_path):
     assert record["verification"][0]["passed"] is True
 
 
+
+def test_the_minimal_emitter_can_carry_the_recommended_fields(tmp_path):
+    """The two fields draft.3 exists for, emitted by the reference producer.
+
+    The demo in `emitter_minimal.py` copies bytes: it has no CRS decision and no
+    configuration that could change its answer, so passing it either field would
+    be a lie in the one artefact implementers copy. The parameters still need a
+    test, because a parameter nothing exercises is how a field that "exists"
+    turns out not to work.
+    """
+    import sys
+
+    sys.path.insert(0, str(ROOT / "examples"))
+    from emitter_minimal import emit_manifest
+
+    source = tmp_path / "in.bin"
+    source.write_bytes(b"twenty bytes exactly")
+    target = tmp_path / "out.bin"
+    target.write_bytes(source.read_bytes())
+
+    manifest = emit_manifest(
+        output=target,
+        operation="reproject_layer",
+        parameters={"target_crs": "EPSG:4326"},
+        inputs=[source],
+        engine={"name": "demo", "version": "1"},
+        checks=[{"name": "crs_present", "passed": True, "detail": "EPSG:4326"}],
+        started_at="2026-08-26T10:00:00Z",
+        crs_decisions={
+            "analysis_crs": "EPSG:4326",
+            "reason": "the question is in degrees",
+            "source_crs": "EPSG:4267",
+            "target_crs": "EPSG:4326",
+            "transformation": {
+                "pipeline": "+proj=noop",
+                "accuracy_m": None,
+                # The case the field exists for: no datum shift was available.
+                "is_ballpark": True,
+            },
+        },
+        environment={"PROJ_NETWORK": "OFF", "PROJ_DATA": "/usr/share/proj"},
+    )
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    assert problems(record) == []
+    assert _schema_errors(record) == []
+    # The point of the whole change: a consumer can branch on this.
+    assert record["crs_decisions"]["transformation"]["is_ballpark"] is True
+    assert record["environment"]["PROJ_NETWORK"] == "OFF"
+
 def test_the_cli_exit_codes_mean_what_they_say(tmp_path):
     ok = subprocess.run(
         [sys.executable, str(ROOT / "validator" / "validate.py"), str(VALID[0])],
@@ -214,6 +263,10 @@ def _maximal_record() -> dict:
     record["notes"] = ["the DEM was copied to a workspace path before the engine saw it"]
     record["repairs"] = [{"check": "geometry_valid", "action": "make_valid", "resolved": True}]
     record["parameters_redacted"] = False
+    record["environment"] = {"PROJ_NETWORK": "OFF", "GDAL_NUM_THREADS": "1"}
+    record["crs_decisions"]["transformation"] = {
+        "pipeline": "noop", "accuracy_m": 0.0, "is_ballpark": False,
+    }
     return record
 
 
@@ -243,6 +296,8 @@ def test_the_mutation_table_covers_the_declared_surface():
         ("parameters_redacted",),
         ("inputs", 0, "layer"), ("inputs", 0, "crs"),
         ("verification", 0, "critical"), ("verification", 0, "argument"),
+        ("environment",), ("crs_decisions", "transformation"),
+        ("crs_decisions", "source_crs"),
     ):
         assert expected in paths, f"the schema no longer yields a mutation for {expected}"
 

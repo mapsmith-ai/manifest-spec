@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.2
+# Provenance manifests for geospatial datasets — v1.0.0-draft.3
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -121,6 +121,7 @@ MUST use the core name for it, and MUST NOT use a core name for anything else.
 | `values_in_expected_range` | every value in the output lies within a range the operation guarantees |
 | `input_crs_present` | every input declares a coordinate reference system — a precondition, checked before the operation runs |
 | `input_not_empty` | no input is empty — a precondition, and usually a warning rather than a failure |
+| `inputs_share_crs` | the inputs are in the same coordinate reference system, so comparing them means something — a precondition, and the check whose absence from this list would have every producer naming it differently |
 | `inputs_may_intersect` | the inputs' extents overlap, so an empty result would be a finding rather than the obvious outcome |
 | `geometry_types` | the output's geometry types are the ones the operation produces |
 
@@ -144,18 +145,52 @@ implementation's internals stays an extension, however useful.
 ### 3.7 `crs_decisions`: the shape
 
 `crs_decisions` is where this format earns its keep, so its structure is specified rather than
-left to each producer. It is an object of string values, and when a producer records a decision
-it SHOULD use these keys:
+left to each producer. It is an object; `analysis_crs` and `reason` are strings; other values may
+be of any type. When a producer records a decision it SHOULD use these keys:
 
 | key | holds |
 |---|---|
 | `analysis_crs` | the coordinate system the operation actually computed in |
 | `reason` | why that system, in words a reader can check — naming the alternative rejected, where there was one |
+| `source_crs` | the coordinate system the coordinates were in before the operation |
+| `target_crs` | the coordinate system they were put into, when the operation transformed them |
+| `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent) |
 
-Additional keys are permitted under the extension rule above. Two things this field is not: a
-place for the output CRS (that belongs in `output`), and a place for a CRS name with no
-justification. *"Reprojected to EPSG:32632"* records the what and loses the why, which is the half
-that cannot be recovered from the data afterwards.
+Additional keys are permitted under the extension rule above.
+
+**Why the values are not all strings.** Until `1.0.0-draft.3` this field was declared "an object
+of string values", which sounds harmless and is not: it makes the most consequential question a
+consumer can ask unanswerable in a form a program can use. *Was this transformation a ballpark
+one?* — a ballpark transformation is the engine saying "I have no datum shift for this pair, so I
+will pretend the datums coincide", which on a NAD27-to-WGS84 pair is a hundred metres of error
+delivered without a warning. With string-only values the answer could only be prose inside
+`reason`, and prose is what section 7 faults other formats for. **`is_ballpark` is a boolean
+because a consumer has to be able to branch on it.**
+
+Two things this field is not: a place for the output CRS (that belongs in `output`), and a place
+for a CRS name with no justification. *"Reprojected to EPSG:32632"* records the what and loses the
+why, which is the half that cannot be recovered from the data afterwards.
+
+### 3.8 `environment`: the configuration that changed the answer
+
+RECOMMENDED. An object of strings holding the configuration that influenced the result and lives
+neither in the data nor in the call: `PROJ_NETWORK`, the `GDAL_*` variables that change how a
+dataset is read, a project-level ellipsoid or datum setting, `AREA_OR_POINT`, the presence or
+absence of a datum grid on the machine.
+
+**Why a field of its own.** `parameters` holds the parameters of the operation — what the caller
+asked for. `engine` holds what computed it. Neither holds the state of the machine, and that state
+can change the number: the same thousand-metre square measures 1,000,530.603 m² or exactly
+1,000,000 m² depending on a project setting that appears in no argument and no output. A record
+that omits it describes a computation nobody can reproduce while looking complete, which is the
+failure mode this format exists to remove.
+
+The principle, and it is the shortest statement of what a manifest is for: **the correct answer is
+not a number, it is this number with this configuration.**
+
+A producer records what it knows influenced the result; it is not required to dump the
+environment. An empty or absent `environment` claims nothing, exactly like an absent
+`crs_decisions`.
 
 ## 4. Conformance
 
@@ -182,6 +217,12 @@ Semantic versioning on the specification itself. Within major version 1: adding 
 is a minor bump; clarifying prose without changing meaning is a patch; anything that makes a
 previously conforming record non-conforming is a new major version. `spec_version` in each record
 names what the producer targeted; the schema for major version 1 accepts any `1.x.y`.
+
+**Before `1.0.0` final, the pre-release label carries the tightenings.** A draft may narrow what
+conforms — that is what a draft is for — and every narrowing MUST change the label: `draft.2` →
+`draft.3`. This rule exists because it was broken: section 3.6 closed the check-name vocabulary
+under an unchanged `draft.2`, so a record that conformed one day did not the next and carried no
+version to say so. A reader of a draft is entitled to know that the draft moved under them.
 
 ## 6. What is deliberately out of scope
 
