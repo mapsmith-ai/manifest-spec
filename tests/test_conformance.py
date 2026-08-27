@@ -10,6 +10,7 @@ rejects is a bug in one of them, and the failure says which.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -332,3 +333,23 @@ def test_both_implementations_reject_the_same_wrong_type(path: tuple, wrong: obj
         "the two implementations have drifted, and the schema is the lenient one. "
         f"Validator said: {by_validator[:2]}"
     )
+
+def test_the_paths_the_readme_tells_strangers_to_download_still_exist():
+    """The README hands out raw URLs. A rename breaks a stranger's paste.
+
+    Nothing in this repository needs installing, which is the point and also the
+    risk: the way people use it is by fetching two files by path from `main`. So
+    the paths are part of the contract, and moving one is a breaking change that
+    no import would catch. This test does not hit the network — it checks that
+    every path the README publishes is a file that exists here.
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    published = re.findall(
+        r"raw\.githubusercontent\.com/mapsmith-ai/manifest-spec/main/(\S+)", readme
+    )
+    assert published, "the README no longer publishes any raw URL — update this test with it"
+    for relative in published:
+        assert (ROOT / relative).is_file(), (
+            f"the README tells people to download {relative}, which is not here any more. "
+            "Renaming a published path breaks every pasted command in the wild."
+        )

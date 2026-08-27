@@ -48,11 +48,49 @@ reference implementation's own record did exactly that, and the finding is publi
 first page of [Argleton's results](https://argleton.org/#results). Measuring correctness is an
 evaluation suite's job; recording what happened, verifiably, is this format's.
 
-## Try it
+## Try it without adopting anything
+
+The validator is one file, standard library only, and it does not need this
+repository. Check a record you already have:
+
+```bash
+curl -O https://raw.githubusercontent.com/mapsmith-ai/manifest-spec/main/validator/validate.py
+python validate.py my-dataset.tif.provenance.json
+```
+
+It prints one line per problem and exits 1, or prints `conforming` and exits 0 —
+so it drops into a pipeline as a gate without anything else being installed.
+There is nothing to `pip install`, and that is deliberate: a format whose point
+is that checking it needs no toolchain cannot ship as a package that needs one.
+
+Produce one, if you have not got one yet. The reference emitter is also a single
+stdlib file, and it imports nothing from any product:
+
+```bash
+curl -O https://raw.githubusercontent.com/mapsmith-ai/manifest-spec/main/examples/emitter_minimal.py
+python emitter_minimal.py | xargs python validate.py
+```
+
+And check a validator of your own — yours, ours, anyone's — against the
+conformance corpus, which is the part that settles arguments:
+
+```bash
+curl -sL https://github.com/mapsmith-ai/manifest-spec/archive/refs/heads/main.tar.gz | tar xz
+cd manifest-spec-main && pip install jsonschema pytest && pytest -q
+```
+
+`conformance/valid/` holds records that MUST validate, `conformance/invalid/`
+records that MUST be rejected with the reason each one is rejected for, and the
+suite mutates every field the schema declares to check that the schema and the
+validator agree on all of them. A validator that disagrees with that directory is
+wrong, whoever wrote it — including us.
+
+### From a checkout
 
 ```bash
 python examples/emitter_minimal.py          # emit a conforming record
 python validator/validate.py conformance/valid/*.json
+python examples/environment_changes_the_answer.py   # why section 3.8 exists
 pip install jsonschema pytest && pytest -q  # the full conformance suite
 ```
 
