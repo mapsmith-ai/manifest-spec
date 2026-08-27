@@ -188,6 +188,28 @@ failure mode this format exists to remove.
 The principle, and it is the shortest statement of what a manifest is for: **the correct answer is
 not a number, it is this number with this configuration.**
 
+**This is demonstrated, not asserted.** Run
+[`examples/environment_changes_the_answer.py`](../examples/environment_changes_the_answer.py) —
+`rasterio` and nothing else, no network, one file. It writes a GeoTIFF whose own georeferencing
+puts it at (500000, 5030000) with 10 m pixels, and beside it a `.aux.xml` sidecar claiming
+(600000, 5040000) with 20 m pixels. Then it opens the raster three times, changing nothing but the
+process environment:
+
+| environment | area | origin |
+|---|---|---|
+| default | **1600 m²** | 600000, 5039960 |
+| `GDAL_PAM_ENABLED=NO` | **400 m²** | 500000, 5029980 |
+| `GDAL_GEOREF_SOURCES=INTERNAL` | **400 m²** | 500000, 5029980 |
+
+A factor of four in area and a hundred kilometres in position, from one file and one line of code.
+**None of the three runs says which georeferencing it used.**
+
+And it is not a bug to be fixed somewhere else: GDAL's documented precedence puts the sidecar ahead
+of the file's own georeferencing on purpose, because a sidecar is how a user overrides
+georeferencing they know to be wrong. Both answers are the library behaving as documented. That is
+what makes this a field in a record rather than an issue in a tracker — there is nothing to fix,
+and everything to state.
+
 A producer records what it knows influenced the result; it is not required to dump the
 environment. An empty or absent `environment` claims nothing, exactly like an absent
 `crs_decisions`.
