@@ -45,6 +45,7 @@ DECLARATIONS = [
     ("examples/emitter_minimal.py", r'^SPEC_VERSION\s*=\s*"([^"]+)"', "the reference producer"),
     ("README.md", r'"spec_version":\s*"([^"]+)"', "the example record on the front page"),
     ("README.md", r"\*\*Status: draft\*\*\s*\(`([^`]+)`\)", "the status line"),
+    (".zenodo.json", r'"version":\s*"([^"]+)"', "the archive metadata"),
 ]
 
 
@@ -93,3 +94,67 @@ def test_the_release_date_is_not_in_the_future() -> None:
         f"The date is written by hand before tagging; when the tag slips, this is "
         f"the line that quietly becomes false."
     )
+
+
+def test_the_archive_metadata_declares_one_licence_as_a_string() -> None:
+    """The defect this test exists for cost a failed release.
+
+    Zenodo's metadata model has a single `license` field, typed as one string
+    from a controlled vocabulary. CITATION.cff can list several, and this
+    repository genuinely has two — CC-BY-4.0 for the specification text,
+    Apache-2.0 for the schema, validator, fixtures and examples. Converted to
+    Zenodo's shape that becomes `"license": {"id": ["CC-BY-4.0", "Apache-2.0"]}`,
+    which Zenodo rejects, and the release fails with no DOI.
+
+    `.zenodo.json` therefore names one licence, and the dual licensing has to be
+    stated in the description instead — because a record that silently declares
+    one licence for a dual-licensed archive is a true field leaving a false
+    impression, which is the failure mode this project spends its time catching
+    in other people's software.
+    """
+    import json
+
+    metadata = json.loads((ROOT / ".zenodo.json").read_text(encoding="utf-8"))
+
+    licence = metadata.get("license")
+    assert isinstance(licence, str), (
+        f"license must be a single string from Zenodo's vocabulary, got "
+        f"{type(licence).__name__}: {licence!r}. A list is what failed before."
+    )
+    assert licence == licence.lower(), (
+        f"Zenodo's licence identifiers are lowercase; {licence!r} is not"
+    )
+
+    description = metadata.get("description", "")
+    for other in ("CC-BY-4.0", "Apache-2.0"):
+        assert other in description, (
+            f"the description must name {other}: the single licence field cannot "
+            f"express that this archive is dual-licensed, so the prose must"
+        )
+
+
+def test_the_archive_metadata_and_the_citation_file_do_not_contradict() -> None:
+    """Zenodo ignores CITATION.cff entirely when .zenodo.json exists.
+
+    That makes disagreement between them invisible at release time and visible
+    only to a human reading both — the exact conditions under which two copies
+    of the same fact drift apart.
+    """
+    import json
+    import re as regex
+
+    metadata = json.loads((ROOT / ".zenodo.json").read_text(encoding="utf-8"))
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+
+    title = regex.search(r"^title:\s*\"(.+)\"", citation, flags=regex.MULTILINE)
+    assert title, "CITATION.cff has no title"
+    assert metadata["title"] == title.group(1), (
+        f".zenodo.json titles the record {metadata['title']!r} while CITATION.cff "
+        f"says {title.group(1)!r}"
+    )
+
+    creators = [c["name"] for c in metadata["creators"]]
+    for name in creators:
+        assert name in citation, (
+            f".zenodo.json credits {name!r}, which does not appear in CITATION.cff"
+        )

@@ -1,0 +1,20 @@
+{
+  "upload_type": "publication",
+  "publication_type": "technicalnote",
+  "title": "Provenance manifests for geospatial datasets",
+  "version": "1.0.0-draft.3",
+  "creators": [
+    {"name": "The MapSmith project"}
+  ],
+  "license": "cc-by-4.0",
+  "access_right": "open",
+  "keywords": [
+    "provenance",
+    "geospatial",
+    "reproducibility",
+    "metadata",
+    "GIS",
+    "specification"
+  ],
+  "description": "<p>A specification for one small JSON document, written next to one output dataset, that records what was done to produce it &mdash; completely enough that <strong>someone who was not there can re-run the operation and disagree with it</strong>. It covers the inputs and their hashes, the exact parameters, the coordinate-system decisions and the reason for each, the engine and its version, the environment that changed the answer, and the deterministic checks that ran.</p><p>A manifest records what was done; it does <em>not</em> certify that what was done was right, and the specification says so in its own text rather than leaving a reader to discover it.</p><p>The archive contains the specification, a normative JSON Schema, a standalone validator that needs no toolchain, a conformance suite of records that must be accepted and records that must be rejected, and a conforming producer in under a hundred lines that imports nothing from any product. The schema and the validator are independent implementations, kept in agreement by the conformance suite.</p><p><strong>Status: draft.</strong> Field names and semantics may still change, and every narrowing of what conforms changes the version label.</p><p><strong>Licences.</strong> This archive is dual-licensed and the single licence field above cannot say so: the specification text is <strong>CC-BY-4.0</strong>, while the schema, the validator, the conformance fixtures and the examples are <strong>Apache-2.0</strong>. See LICENSE-SPEC and LICENSE-CODE in the archive.</p>"
+}
