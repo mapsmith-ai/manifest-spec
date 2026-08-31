@@ -24,6 +24,11 @@ operation and disagree with it**.
 **Status: draft** (`1.0.0-draft.3`). Field names may still change; anything that does is visible
 in this repository's history.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
+
+Cite it as `10.5281/zenodo.22205213`, which always resolves to the current version. To cite the
+exact draft you read, take the version DOI from the [Zenodo record](https://doi.org/10.5281/zenodo.22205213).
+
 ## What is in this repository
 
 | | |

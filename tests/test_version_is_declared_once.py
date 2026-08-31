@@ -158,3 +158,32 @@ def test_the_archive_metadata_and_the_citation_file_do_not_contradict() -> None:
         assert name in citation, (
             f".zenodo.json credits {name!r}, which does not appear in CITATION.cff"
         )
+
+
+def test_the_published_doi_is_the_concept_doi_and_says_so_once() -> None:
+    """Two DOIs exist and picking the wrong one ages badly.
+
+    Zenodo mints a version DOI per release and one concept DOI that always
+    resolves to the newest. The concept DOI is what a reader should cite and the
+    only one safe to hard-code, because a version DOI written into a file nobody
+    re-reads becomes a citation for a superseded draft the moment the next
+    release lands.
+    """
+    import re as regex
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
+
+    in_readme = set(regex.findall(r"10\.5281/zenodo\.(\d+)", readme))
+    in_citation = set(regex.findall(r"10\.5281/zenodo\.(\d+)", citation))
+
+    assert in_readme, "the README publishes no DOI"
+    assert in_citation, "CITATION.cff carries no DOI"
+    assert in_readme == in_citation, (
+        f"the README cites zenodo.{sorted(in_readme)} and CITATION.cff cites "
+        f"zenodo.{sorted(in_citation)}. One of them is the version DOI."
+    )
+    assert len(in_readme) == 1, (
+        f"more than one DOI is published: {sorted(in_readme)}. Only the concept "
+        f"DOI belongs in files that are not rewritten at every release."
+    )
