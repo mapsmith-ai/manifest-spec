@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this specification in your work, please cite it as below."
+title: "Provenance manifests for geospatial datasets"
+# CFF 1.2.0 admits only `software` and `dataset`. This repository is primarily a
+# specification document, which is neither; `software` is the closer of the two,
+# and it is also literally true of the schema, the validator and the conformance
+# suite that ship beside the text.
+type: software
+authors:
+  - name: "The MapSmith project"
+repository-code: "https://github.com/mapsmith-ai/manifest-spec"
+license:
+  - CC-BY-4.0
+  - Apache-2.0
+version: "1.0.0-draft.3"
+date-released: "2026-08-31"
+keywords:
+  - provenance
+  - geospatial
+  - reproducibility
+  - metadata
+  - GIS
+abstract: >-
+  A specification for one small JSON document, written next to one output
+  dataset, that records what was done to produce it — completely enough that
+  someone who was not there can re-run the operation and disagree with it. It
+  covers the inputs and their hashes, the exact parameters, the coordinate-system
+  decisions and the reason for each, the engine and its version, the environment
+  that changed the answer, and the deterministic checks that ran. A manifest
+  records what was done; it does not certify that what was done was right, and
+  the specification says so. Ships with a JSON Schema, a standalone
+  stdlib-only validator, a conformance suite of records that must be accepted
+  and records that must be rejected, and a conforming producer in under a
+  hundred lines that imports nothing from MapSmith.
