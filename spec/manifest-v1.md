@@ -154,7 +154,7 @@ be of any type. When a producer records a decision it SHOULD use these keys:
 | `reason` | why that system, in words a reader can check — naming the alternative rejected, where there was one |
 | `source_crs` | the coordinate system the coordinates were in before the operation |
 | `target_crs` | the coordinate system they were put into, when the operation transformed them |
-| `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent) |
+| `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent) |
 
 Additional keys are permitted under the extension rule above.
 

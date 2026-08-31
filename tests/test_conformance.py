@@ -215,16 +215,31 @@ def _wrong_value(spec: dict) -> object:
 
 
 def _mutations() -> list[tuple[tuple, object]]:
-    """One (path, wrong value) per typed field the schema declares, nested included."""
+    """One (path, wrong value) per typed field the schema declares, nested included.
+
+    Descends to **any** depth. It used to go exactly one level, and
+    `crs_decisions.transformation` is two: the object was mutated as a
+    container while `pipeline`, `accuracy_m` and `is_ballpark` — the three keys
+    draft.3 added — were never mutated at all. The assertion that the suite
+    covers `("crs_decisions", "transformation")` found the container and passed
+    while the leaves were uncovered, which is how the validator came to reject
+    `pipeline: null` while the schema accepted it for four days.
+    """
     found: list[tuple[tuple, object]] = []
+
+    def descend(prefix: tuple, spec: dict) -> None:
+        for sub, sub_spec in (spec.get("properties") or {}).items():
+            wrong = _wrong_value(sub_spec)
+            if wrong is not _MISSING:
+                found.append(((*prefix, sub), wrong))
+            if isinstance(sub_spec, dict) and sub_spec.get("properties"):
+                descend((*prefix, sub), sub_spec)
+
     for name, spec in SCHEMA["properties"].items():
         wrong = _wrong_value(spec)
         if wrong is not _MISSING:
             found.append(((name,), wrong))
-        for sub, sub_spec in (spec.get("properties") or {}).items():
-            wrong = _wrong_value(sub_spec)
-            if wrong is not _MISSING:
-                found.append(((name, sub), wrong))
+        descend((name,), spec)
         items = spec.get("items")
         if isinstance(items, dict):
             if items.get("properties"):
@@ -299,8 +314,41 @@ def test_the_mutation_table_covers_the_declared_surface():
         ("verification", 0, "critical"), ("verification", 0, "argument"),
         ("environment",), ("crs_decisions", "transformation"),
         ("crs_decisions", "source_crs"),
+        # The three leaves draft.3 added, two levels down. Named individually
+        # because the container above them was covered and they were not: the
+        # table listed `("crs_decisions", "transformation")`, that assertion
+        # passed, and nothing mutated the keys inside it. Covering a container
+        # is not covering what it holds.
+        ("crs_decisions", "transformation", "pipeline"),
+        ("crs_decisions", "transformation", "accuracy_m"),
+        ("crs_decisions", "transformation", "is_ballpark"),
     ):
         assert expected in paths, f"the schema no longer yields a mutation for {expected}"
+
+    # Every typed leaf the schema declares, at any depth, and not a list to
+    # maintain by hand. Without this the recursion in `_mutations` can be
+    # removed and nothing fails — which is a guard that is not guarding.
+    def leaves(prefix: tuple, spec: dict) -> set[tuple]:
+        out: set[tuple] = set()
+        for sub, sub_spec in (spec.get("properties") or {}).items():
+            if not isinstance(sub_spec, dict):
+                continue
+            if sub_spec.get("properties"):
+                out |= leaves((*prefix, sub), sub_spec)
+            elif _wrong_value(sub_spec) is not _MISSING:
+                out.add((*prefix, sub))
+        return out
+
+    declared: set[tuple] = set()
+    for name, spec in SCHEMA["properties"].items():
+        if isinstance(spec, dict):
+            declared |= leaves((name,), spec)
+    missing = sorted(declared - paths)
+    assert not missing, (
+        f"the schema declares these typed leaves and nothing mutates them: "
+        f"{missing}. A field the suite never mutates is a field where the two "
+        f"implementations may already disagree."
+    )
 
 
 @pytest.mark.parametrize(
@@ -353,3 +401,84 @@ def test_the_paths_the_readme_tells_strangers_to_download_still_exist():
             f"the README tells people to download {relative}, which is not here any more. "
             "Renaming a published path breaks every pasted command in the wild."
         )
+
+
+# --- the direction the suite was missing ------------------------------------
+
+
+def _nullable_paths() -> list[tuple]:
+    """Every path the schema declares nullable, at any depth.
+
+    Derived from the schema rather than listed, so a field made nullable later
+    is covered without anybody remembering to add it.
+    """
+    found: list[tuple] = []
+
+    def nullable(spec: object) -> bool:
+        return isinstance(spec, dict) and "null" in (
+            spec.get("type") if isinstance(spec.get("type"), list) else []
+        )
+
+    def descend(prefix: tuple, spec: dict) -> None:
+        for sub, sub_spec in (spec.get("properties") or {}).items():
+            if nullable(sub_spec):
+                found.append((*prefix, sub))
+            if isinstance(sub_spec, dict) and sub_spec.get("properties"):
+                descend((*prefix, sub), sub_spec)
+        items = spec.get("items")
+        if isinstance(items, dict) and items.get("properties"):
+            for sub, sub_spec in items["properties"].items():
+                if nullable(sub_spec):
+                    found.append((*prefix, 0, sub))
+
+    for name, spec in SCHEMA["properties"].items():
+        if nullable(spec):
+            found.append((name,))
+        if isinstance(spec, dict):
+            descend((name,), spec)
+    return found
+
+
+NULLABLE = _nullable_paths()
+
+
+def test_the_schema_declares_some_fields_nullable():
+    """If this list is empty the parametrised test below is vacuous."""
+    assert NULLABLE, (
+        "no nullable field found in the schema — either the schema stopped "
+        "declaring any, or this derivation stopped working and the test that "
+        "depends on it is now checking nothing"
+    )
+
+
+@pytest.mark.parametrize("path", NULLABLE, ids=lambda p: ".".join(str(x) for x in p))
+def test_both_implementations_accept_null_where_the_schema_allows_it(path):
+    """The direction this suite did not have, and it cost four days of divergence.
+
+    Every other test here checks that both implementations REJECT a value the
+    schema forbids. None checked that both ACCEPT one the schema allows — and
+    `null` on a nullable field is exactly that case. `pipeline` was the only
+    nullable field the validator wrote the non-nullable way, so it rejected a
+    record the schema accepted and MapSmith emitted, on the NAD27-to-WGS84 pair
+    section 3.7 uses as its headline example.
+
+    Section 3 says the schema wins where they disagree, so a disagreement in
+    either direction is a bug in the validator.
+    """
+    record = _maximal_record()
+    target = record
+    for step in path[:-1]:
+        target = target[step]
+    if path[-1] not in target:
+        pytest.skip(f"the maximal record does not carry {'.'.join(map(str, path))}")
+    target[path[-1]] = None
+
+    schema_problems = _schema_errors(record)
+    assert not schema_problems, (
+        f"the schema rejects null at {path}, which contradicts its own type "
+        f"declaration: {schema_problems}"
+    )
+    assert problems(record) == [], (
+        f"the validator rejects null at {path} while the schema accepts it. "
+        f"Section 3: where the two disagree, the schema wins."
+    )
