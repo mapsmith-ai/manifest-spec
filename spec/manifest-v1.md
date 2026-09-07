@@ -240,6 +240,15 @@ is a minor bump; clarifying prose without changing meaning is a patch; anything 
 previously conforming record non-conforming is a new major version. `spec_version` in each record
 names what the producer targeted; the schema for major version 1 accepts any `1.x.y`.
 
+**The schema declares which version it is**, in `x-spec-version` at its top level. An
+unknown keyword there is ignored by every JSON Schema validator, and the field exists because a
+schema file travels alone: it gets vendored into a consumer's test fixtures, attached to a bug
+report, pinned in a lockfile. Until `1.0.0-draft.3` a reader holding the file could not tell
+which draft it was -- the `spec_version` rule inside it accepts any `1.x.y` on purpose, so the
+document said nothing about itself. A consumer can now compare the label of the schema it
+vendored against the label in the records it receives, which is the comparison that catches a
+stale copy.
+
 **Before `1.0.0` final, the pre-release label carries the tightenings.** A draft may narrow what
 conforms — that is what a draft is for — and every narrowing MUST change the label: `draft.2` →
 `draft.3`. This rule exists because it was broken: section 3.6 closed the check-name vocabulary

@@ -46,6 +46,11 @@ DECLARATIONS = [
     ("README.md", r'"spec_version":\s*"([^"]+)"', "the example record on the front page"),
     ("README.md", r"\*\*Status: draft\*\*\s*\(`([^`]+)`\)", "the status line"),
     (".zenodo.json", r'"version":\s*"([^"]+)"', "the archive metadata"),
+    (
+        "schema/manifest-v1.schema.json",
+        r'"x-spec-version":\s*"([^"]+)"',
+        "the schema's own label, which is the only thing a vendored copy carries",
+    ),
 ]
 
 
