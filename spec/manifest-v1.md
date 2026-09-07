@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.3
+# Provenance manifests for geospatial datasets — v1.0.0-draft.4
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -78,11 +78,19 @@ diagnosis it already has.
 
 ### 3.4 Recommended fields
 
-**`output`** — the `path` and `sha256` of the dataset this record sits beside. Without it, a
-consumer cannot verify that the sidecar describes the bytes next to it, and the record cannot be
-wrapped in an in-toto attestation (whose `subject` requires a digest — see §8). Recommended
-rather than mandatory only because a producer may emit the manifest before the output is durably
-on disk; when the digest can be computed, it SHOULD be.
+**`output`** — the `path` and `sha256` of the dataset this record sits beside, and since
+`1.0.0-draft.4` its `crs`. Without the digest, a consumer cannot verify that the sidecar describes
+the bytes next to it, and the record cannot be wrapped in an in-toto attestation (whose `subject`
+requires a digest — see §8). Recommended rather than mandatory only because a producer may emit
+the manifest before the output is durably on disk; when the digest can be computed, it SHOULD be.
+
+**`output.crs`** — the coordinate reference system the written dataset declares, when it has one.
+Section 3.7 has said since `1.0.0-draft.2` that the output CRS belongs here rather than among the
+CRS decisions, and until `draft.4` there was nowhere here to put it: producers put it in
+`crs_decisions` instead, where it is a claim about a file made by code that has not yet written
+one, and therefore false on every path that fails between the decision and the write. A producer
+that cannot compute it — because the write has not happened — SHOULD omit it rather than predict
+it.
 
 `crs_decisions` (each decision **with its reason** — the what without the why loses the part an
 auditor needs), `notes` (how inputs were handled before the engine saw them), `repairs` (every
@@ -154,9 +162,20 @@ be of any type. When a producer records a decision it SHOULD use these keys:
 | `reason` | why that system, in words a reader can check — naming the alternative rejected, where there was one |
 | `source_crs` | the coordinate system the coordinates were in before the operation |
 | `target_crs` | the coordinate system they were put into, when the operation transformed them |
-| `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent) |
+| `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent), `better_available_m` (see below) |
 
 Additional keys are permitted under the extension rule above.
+
+**`better_available_m`, and the difference it is the only field that carries.** When
+`is_ballpark` is true and a published operation for this pair nevertheless exists, this holds that
+operation's stated accuracy in metres; otherwise it is absent or null. The distinction it draws is
+the one an operator acts on. *There is no datum transformation for this pair* and *there is one,
+and this machine has not got the grid file* are different problems with different fixes: the first
+is a fact about the world and the second is a download. Without this field a record cannot tell
+them apart, and a consumer reading `is_ballpark: true` has no way to know whether the hundred
+metres were unavoidable or merely uninstalled. New in `1.0.0-draft.4`, optional, and the only
+field in this format whose value is about what the environment is *missing* rather than about what
+it did.
 
 **Why the values are not all strings.** Until `1.0.0-draft.3` this field was declared "an object
 of string values", which sounds harmless and is not: it makes the most consequential question a
@@ -167,7 +186,9 @@ delivered without a warning. With string-only values the answer could only be pr
 `reason`, and prose is what section 7 faults other formats for. **`is_ballpark` is a boolean
 because a consumer has to be able to branch on it.**
 
-Two things this field is not: a place for the output CRS (that belongs in `output`), and a place
+Two things this field is not: a place for the output CRS (that belongs in `output.crs`, which
+exists since `1.0.0-draft.4` -- until then this sentence named a field that had not been
+built, and producers put the value here instead), and a place
 for a CRS name with no justification. *"Reprojected to EPSG:32632"* records the what and loses the
 why, which is the half that cannot be recovered from the data afterwards.
 

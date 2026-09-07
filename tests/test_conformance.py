@@ -275,13 +275,26 @@ def _maximal_record() -> dict:
     record["output"] = {
         "path": "out/basins.tif",
         "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+        "crs": "EPSG:32632",
     }
+    # The layer of a multi-layer container, which the format declares and this
+    # record did not carry: the mutation tests below skipped it in silence.
+    record["inputs"][0]["layer"] = "basins"
     record["notes"] = ["the DEM was copied to a workspace path before the engine saw it"]
     record["repairs"] = [{"check": "geometry_valid", "action": "make_valid", "resolved": True}]
     record["parameters_redacted"] = False
     record["environment"] = {"PROJ_NETWORK": "OFF", "GDAL_NUM_THREADS": "1"}
+    record["crs_decisions"]["source_crs"] = "EPSG:4267"
+    record["crs_decisions"]["target_crs"] = "EPSG:32632"
     record["crs_decisions"]["transformation"] = {
-        "pipeline": "noop", "accuracy_m": 0.0, "is_ballpark": False,
+        "pipeline": "noop",
+        "accuracy_m": 0.0,
+        "is_ballpark": False,
+        # `null` is the right value beside `is_ballpark: false`: nothing better
+        # is going unused when the operation used was the published one. Present
+        # rather than omitted because a field absent from this record is a field
+        # the tests below cannot reach.
+        "better_available_m": None,
     }
     return record
 
@@ -469,8 +482,18 @@ def test_both_implementations_accept_null_where_the_schema_allows_it(path):
     target = record
     for step in path[:-1]:
         target = target[step]
-    if path[-1] not in target:
-        pytest.skip(f"the maximal record does not carry {'.'.join(map(str, path))}")
+    # NOT a skip since 2026-09-07. The docstring of `_maximal_record` says it
+    # carries every field the format declares, and this was the mechanism that
+    # let that sentence be false without anybody noticing: five declared fields
+    # were absent, and two of them had been added to the specification the same
+    # day. A skip here is the fixture being wrong, which is a failure.
+    assert path[-1] in target, (
+        f"the maximal record does not carry {'.'.join(map(str, path))}, so the "
+        "nullability of that field is declared by the schema and checked by "
+        "nothing. Add it to `_maximal_record` -- the record is supposed to hold "
+        "every field the format declares, and that is what makes these mutation "
+        "tests worth their runtime."
+    )
     target[path[-1]] = None
 
     schema_problems = _schema_errors(record)
