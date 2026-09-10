@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.4
+# Provenance manifests for geospatial datasets — v1.0.0-draft.5
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -98,6 +98,23 @@ mechanical repair, disclosed — an undisclosed repair makes the manifest descri
 never existed), `parameters_redacted` (true when redaction changed anything: a record that
 silently differs from what ran is a worse defect than the secret it protects), `producer`
 (the emitting software, as distinct from the engine).
+
+**The shape of a `repairs` entry, new in `1.0.0-draft.5`.** Until then this field was declared
+`type: object` and nothing more, so two producers disclosing the same repair could share no key
+and both conform — which is disclosure a consumer cannot read. A producer that records a repair
+MUST use these names for these meanings, and MUST NOT use them for anything else; other keys are
+permitted under section 3.5 and SHOULD carry a producer prefix.
+
+| key | meaning |
+|---|---|
+| `action` | **REQUIRED.** What was done, in the producer's own words. Nullable, and the null is load-bearing: it says a repair was attempted and achieved nothing, with `error` saying why. An *absent* `action` cannot be told apart from a producer that did not record one, and an entry that does not say what was done discloses nothing |
+| `check` | which check the repair was made for, named as in `verification[].name`. It MAY name a check that appears in no entry of `verification[]` — a repair applied to an **input** happens before anything is verified, so this name is the only thing a consumer has to look it up by |
+| `error` | why the repair failed, when it did |
+| `resolved` | whether the check passed afterwards. `false` beside a non-null `action` is the case worth reading: something was changed and the problem remained |
+
+This is the same argument as section 3.6 one field over. `repairs` is a field a consumer branches
+on — *was this geometry altered before it was measured?* — and a field whose values cannot be
+compared across producers answers that question for no one.
 
 ### 3.5 Extensions
 
@@ -275,6 +292,14 @@ conforms — that is what a draft is for — and every narrowing MUST change the
 `draft.3`. This rule exists because it was broken: section 3.6 closed the check-name vocabulary
 under an unchanged `draft.2`, so a record that conformed one day did not the next and carried no
 version to say so. A reader of a draft is entitled to know that the draft moved under them.
+
+**And the rule applies to what is READABLE, not only to what is tagged.** `draft.5` fixes the
+shape of a `repairs` entry, which narrows what conforms; `draft.4` had never been tagged or
+archived when that narrowing was written, so the label could have absorbed it unnoticed. It did
+not, because this repository is public: a consumer who vendored the schema from the default
+branch holds a file whose `x-spec-version` says `draft.4`, and redefining `draft.4` underneath
+that copy is precisely the failure of the preceding paragraph, with a shorter fuse. A label is
+spent the moment it is published, and pushing is publishing.
 
 ## 6. What is deliberately out of scope
 

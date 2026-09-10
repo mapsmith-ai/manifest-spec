@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.4",
+  "spec_version": "1.0.0-draft.5",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,7 +21,7 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.4`). Field names may still change; anything that does is visible
+**Status: draft** (`1.0.0-draft.5`). Field names may still change; anything that does is visible
 in this repository's history.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)

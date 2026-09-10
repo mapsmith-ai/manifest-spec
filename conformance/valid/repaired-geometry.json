@@ -1,0 +1,60 @@
+{
+  "spec_version": "1.0.0-draft.5",
+  "operation": "measure_area",
+  "parameters": {
+    "geodetic": true
+  },
+  "inputs": [
+    {
+      "path": "fixtures/parcels.gpkg",
+      "sha256": "3f1a2c9e5b8d47f6a0c1e2b3d4a5f6079e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b",
+      "crs": "EPSG:6707",
+      "layer": "parcels"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:6707",
+    "reason": "the input is already projected and its units are metres"
+  },
+  "engine": {
+    "name": "shapely",
+    "version": "2.0.6"
+  },
+  "repairs": [
+    {
+      "round": 1,
+      "check": "geometry_valid",
+      "action": "make_valid on 1 of 12 features: a ring crossing itself",
+      "error": null,
+      "resolved": true
+    },
+    {
+      "round": 1,
+      "check": "x-example:hole_orientation",
+      "action": null,
+      "error": "GEOSException: TopologyException at 512000 4482000",
+      "resolved": false
+    }
+  ],
+  "verification": [
+    {
+      "name": "geometry_valid",
+      "passed": true,
+      "detail": "12 of 12 features valid after repair",
+      "critical": true,
+      "hint": null,
+      "argument": null
+    },
+    {
+      "name": "x-example:area_is_close_to_geodetic",
+      "passed": true,
+      "detail": "planar 92903.41 m2 against geodetic 92901.88 m2, ratio 1.0000"
+    }
+  ],
+  "started_at": "2026-09-10T14:22:31Z",
+  "finished_at": "2026-09-10T14:22:33Z",
+  "producer": {
+    "name": "example-emitter",
+    "version": "1.0.0"
+  }
+}

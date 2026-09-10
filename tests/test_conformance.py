@@ -242,15 +242,21 @@ def _mutations() -> list[tuple[tuple, object]]:
         descend((name,), spec)
         items = spec.get("items")
         if isinstance(items, dict):
+            # The container AND its leaves, since 2026-09-10, and the two used
+            # to be alternatives: an array whose items had `properties` yielded
+            # only the leaves. So `("repairs", 0)` was covered for exactly as
+            # long as `repairs.items` was an undescribed object, and describing
+            # the entry in draft.5 would have silently retired the mutation
+            # that exercises "`repairs[n]` must be an object". That is the
+            # converse of the lesson three lines above -- covering a container
+            # is not covering what it holds, and covering what it holds is not
+            # covering the container -- and it arrived by making the schema
+            # more precise, which is the direction nobody watches.
+            wrong = _wrong_value(items)
+            if wrong is not _MISSING:
+                found.append(((name, 0), wrong))
             if items.get("properties"):
-                for sub, sub_spec in items["properties"].items():
-                    wrong = _wrong_value(sub_spec)
-                    if wrong is not _MISSING:
-                        found.append(((name, 0, sub), wrong))
-            else:
-                wrong = _wrong_value(items)
-                if wrong is not _MISSING:
-                    found.append(((name, 0), wrong))
+                descend((name, 0), items)
         extra = spec.get("additionalProperties")
         if isinstance(extra, dict):
             wrong = _wrong_value(extra)
@@ -281,7 +287,17 @@ def _maximal_record() -> dict:
     # record did not carry: the mutation tests below skipped it in silence.
     record["inputs"][0]["layer"] = "basins"
     record["notes"] = ["the DEM was copied to a workspace path before the engine saw it"]
-    record["repairs"] = [{"check": "geometry_valid", "action": "make_valid", "resolved": True}]
+    # `error` since 2026-09-10, when draft.5 declared it nullable: the guard
+    # below requires this record to carry every field the format declares, and
+    # it caught the omission the same hour the field was written.
+    record["repairs"] = [
+        {
+            "check": "geometry_valid",
+            "action": "make_valid",
+            "error": None,
+            "resolved": True,
+        }
+    ]
     record["parameters_redacted"] = False
     record["environment"] = {"PROJ_NETWORK": "OFF", "GDAL_NUM_THREADS": "1"}
     record["crs_decisions"]["source_crs"] = "EPSG:4267"

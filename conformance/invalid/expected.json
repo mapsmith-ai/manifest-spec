@@ -13,6 +13,7 @@
   "output-backslash-path.json": "backslash",
   "output-short-sha256.json": "64",
   "producer-not-an-object.json": "`producer` has the wrong type",
+  "repair-without-action.json": "repairs[0].action",
   "short-sha256.json": "64",
   "uppercase-sha256.json": "lowercase hex",
   "wrong-major-version.json": "1.x"
