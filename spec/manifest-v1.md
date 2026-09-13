@@ -301,11 +301,61 @@ branch holds a file whose `x-spec-version` says `draft.4`, and redefining `draft
 that copy is precisely the failure of the preceding paragraph, with a shorter fuse. A label is
 spent the moment it is published, and pushing is publishing.
 
+**The rules above are written about records, and that is not everything this document
+constrains.** Section 6 places a requirement on a *consumer* walking a chain, and no rule here
+covered that case until one arose. The line: a requirement on producers or on the shape of a
+record follows the paragraphs above; a requirement on consumers does not move the label, because
+no record that conformed stops conforming and no producer has to change anything. What it does
+require is that the requirement be new text rather than a reinterpretation of old text — a
+consumer rule discovered inside an existing sentence is the same trap as a narrowing under an
+unchanged label, wearing the other hat.
+
 ## 6. What is deliberately out of scope
 
-- **Chaining and graphs.** A manifest describes one operation. Multi-step lineage is expressible
-  by pointing an input's `path` at a dataset that has its own manifest; a dedicated plan-level
-  format may standardise more later, informed by use.
+- **Chaining and graphs.** A manifest describes one operation, and no field of this format points
+  at another record. Multi-step lineage does not need one: it is recovered from the digests that
+  are already there. Hash the file in hand, find the manifest whose `output.sha256` is that
+  digest — that is the operation that produced these exact bytes — then take each of its
+  `inputs[].sha256` and repeat. The walk ends at a digest no manifest claims.
+
+  The link is by **content**, not by name, and that is deliberate: a path can be renamed, copied
+  or reused by a later run, while a digest either matches the bytes or does not. A field pointing
+  at the upstream *record* would be weaker in both directions — it would break when a record is
+  reformatted or re-emitted, which is not a change to the lineage, and it would let a record
+  assert its own ancestry rather than be found because it accounts for bytes that exist.
+
+  Three limits, stated because a reader will meet all three.
+
+  **A found hop is not a successful hop.** Section 3.1 REQUIRES a manifest even when verification
+  fails, so the records a walk meets include runs that did not finish. A run that crashed after
+  writing part of its output leaves a conforming record carrying the digest of those partial
+  bytes, and the walk resolves it like any other: the record is accurate — that operation really
+  did produce exactly those bytes — and it is not a history anyone should repeat. **A walker MUST
+  read `verification[]` on every hop it resolves** and MUST NOT present a failed run as
+  provenance without saying so. This is the limit most likely to be missed, because the format
+  guarantees such records exist and nothing about a digest hints that one is unsound.
+
+  **The chain reaches only as far as producers recorded `output`**, which is RECOMMENDED and not
+  REQUIRED for the reason §3.4 gives: a manifest may be emitted before the output is durably on
+  disk, which is also what happens when a run dies before writing anything. Such a record has no
+  digest to be found by, so a walk reports where it stopped instead of claiming a complete
+  history. A producer whose operations answer questions without writing datasets is outside this
+  entirely — it has no output to sit beside and emits no manifest at all.
+
+  **An operation can point at itself.** Where the output is byte-identical to the input — a copy,
+  a conversion that changes nothing, a reprojection to the CRS the data already had — the record's
+  `output.sha256` equals one of its own `inputs[].sha256`, and following that link returns to the
+  same record forever. **A walker MUST therefore track the digests of the ancestors on the path it
+  is currently descending** and stop when one repeats. Ancestors on the *current path*, not every
+  digest ever visited: a lineage that rejoins — two branches sharing an upstream dataset — is
+  ordinary, and a global visited set would silently prune the second branch, turning a hang into
+  a quieter wrong answer. That a cycle can occur is not a defect in the record, which is accurate:
+  content addressing identifies data and not events, and when two events leave the data identical
+  the bytes cannot tell them apart.
+
+  `examples/chain_resolves_by_digest.py` is the walk in about twenty lines of standard library,
+  and the conformance suite runs it. A dedicated plan-level format may standardise more later,
+  informed by use.
 - **Signatures and attestation.** Integrity of the manifest itself is a transport and storage
   concern; formats exist for it and this one composes with them rather than duplicating them.
 - **Semantics of operations.** What `watershed` means is between the producer and its

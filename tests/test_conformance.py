@@ -9,6 +9,7 @@ rejects is a bug in one of them, and the failure says which.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -520,4 +521,127 @@ def test_both_implementations_accept_null_where_the_schema_allows_it(path):
     assert problems(record) == [], (
         f"the validator rejects null at {path} while the schema accepts it. "
         f"Section 3: where the two disagree, the schema wins."
+    )
+
+
+def test_a_chain_resolves_by_content_and_stops_where_it_should(tmp_path):
+    """Section 6 claims multi-step lineage is expressible without a new field.
+
+    That claim shipped in draft.1 and nothing exercised it: on 2026-09-13 the
+    twenty-six records in this repository contained zero links between records.
+    This is the guard, and it is a real walk over real digests rather than an
+    assertion that the sentence is present in the prose.
+    """
+    sys.path.insert(0, str(ROOT / "examples"))
+    from chain_resolves_by_digest import index_by_output, walk
+    from emitter_minimal import _utcnow, emit_manifest
+
+    engine = {"name": "test", "version": "1"}
+    passed = [{"name": "result_not_empty", "passed": True, "detail": "bytes written"}]
+
+    source = tmp_path / "a.bin"
+    source.write_bytes(b"one")
+    middle = tmp_path / "b.bin"
+    middle.write_bytes(b"one two")
+    emit_manifest(output=middle, operation="append", parameters={}, inputs=[source],
+                  engine=engine, checks=passed, started_at=_utcnow())
+    final = tmp_path / "c.bin"
+    final.write_bytes(b"one two three")
+    emit_manifest(output=final, operation="append", parameters={}, inputs=[middle],
+                  engine=engine, checks=passed, started_at=_utcnow())
+
+    by_digest = index_by_output(tmp_path)
+    # Anti-vacuity on what the walk must SEE: two records with an output digest.
+    # Without this the test passes just as happily over an empty index, which is
+    # the shape of guard this repository keeps finding green and useless.
+    assert len(by_digest) == 2, (
+        f"the walk is being handed {len(by_digest)} records to resolve against, "
+        f"so whatever it reports proves nothing"
+    )
+
+    rows = walk(hashlib.sha256(final.read_bytes()).hexdigest(), by_digest)
+    assert [operation for _, operation, _, _ in rows] == ["append", "append", None], (
+        f"the chain did not resolve two hops and stop at the original: {rows}"
+    )
+    assert rows[-1][2] == hashlib.sha256(source.read_bytes()).hexdigest(), (
+        "the walk stopped somewhere other than the source it should not find"
+    )
+
+    # And the record every implementer will meet: an operation that leaves the
+    # bytes untouched points at itself. The walk must stop, not hang. The first
+    # version of the example did hang, at recursion depth 998.
+    same = tmp_path / "d.bin"
+    same.write_bytes(source.read_bytes())
+    emit_manifest(output=same, operation="copy", parameters={}, inputs=[source],
+                  engine=engine, checks=passed, started_at=_utcnow())
+    loop = walk(hashlib.sha256(same.read_bytes()).hexdigest(), index_by_output(tmp_path))
+    assert [operation for _, operation, _, _ in loop] == ["copy", None], (
+        f"a byte-identity operation did not terminate the walk cleanly: {loop}"
+    )
+
+
+def test_the_chain_example_runs():
+    """The example is documentation that executes, so it is run, not read."""
+    subprocess.run(
+        [sys.executable, str(ROOT / "examples" / "chain_resolves_by_digest.py")],
+        capture_output=True, text=True, timeout=60, check=True,
+    )
+
+
+def test_a_rejoining_lineage_keeps_both_branches(tmp_path):
+    """Section 6 says the walker tracks the ancestors of the CURRENT path, not
+    every digest it has seen, and this is why.
+
+    Two datasets derived from one shared upstream, combined into a third:
+    walking back from the third must resolve the shared upstream's OWN producer
+    down both branches. A global visited set terminates the cycle just as well
+    and silently drops the second occurrence, printing a shorter history with
+    nothing to say a hop went missing -- a hang traded for a quiet wrong answer.
+
+    The shared node has a producer of its own on purpose. The first version of
+    this test made it an unproduced original, and a deliberately globalised
+    visited set passed it: with nothing above the shared node there was no hop
+    left to lose, so the fixture could not tell the two designs apart. It was a
+    guard that could not fail at the thing it named.
+    """
+    sys.path.insert(0, str(ROOT / "examples"))
+    from chain_resolves_by_digest import index_by_output, walk
+    from emitter_minimal import _utcnow, emit_manifest
+
+    engine = {"name": "test", "version": "1"}
+    passed = [{"name": "result_not_empty", "passed": True, "detail": "bytes written"}]
+
+    root = tmp_path / "root.bin"
+    root.write_bytes(b"root")
+    shared = tmp_path / "shared.bin"
+    shared.write_bytes(b"root-shared")
+    left, right, joined = tmp_path / "l.bin", tmp_path / "r.bin", tmp_path / "j.bin"
+    left.write_bytes(b"root-shared-left")
+    right.write_bytes(b"root-shared-right")
+    joined.write_bytes(b"root-shared-left-and-right")
+    for out, inputs, operation in (
+        (shared, [root], "make_shared"),
+        (left, [shared], "take_left"),
+        (right, [shared], "take_right"),
+        (joined, [left, right], "combine"),
+    ):
+        emit_manifest(output=out, operation=operation, parameters={}, inputs=inputs,
+                      engine=engine, checks=passed, started_at=_utcnow())
+
+    by_digest = index_by_output(tmp_path)
+    assert len(by_digest) == 4, f"the walk has {len(by_digest)} records to resolve, not 4"
+
+    rows = walk(hashlib.sha256(joined.read_bytes()).hexdigest(), by_digest)
+    operations = [operation for _, operation, _, _ in rows if operation]
+    assert operations == [
+        "combine", "take_left", "make_shared", "take_right", "make_shared",
+    ], (
+        f"a rejoining lineage lost a hop: {operations}. A visited set that is "
+        f"global rather than path-local does exactly this, and the branch it "
+        f"drops leaves no trace in the output."
+    )
+    root_digest = hashlib.sha256(root.read_bytes()).hexdigest()
+    reached = [digest for _, operation, digest, _ in rows if operation is None]
+    assert reached == [root_digest, root_digest], (
+        f"both branches must arrive at the same unproduced root; got {reached}"
     )

@@ -38,6 +38,7 @@ exact draft you read, take the version DOI from the [Zenodo record](https://doi.
 | [`validator/validate.py`](validator/validate.py) | A standalone validator, **stdlib only** — checking a record needs no toolchain |
 | [`conformance/`](conformance/) | Records that MUST validate and records that MUST be rejected, each with its expected reason |
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
+| [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
 
 The schema and the validator are **independent implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and
@@ -96,6 +97,7 @@ wrong, whoever wrote it — including us.
 python examples/emitter_minimal.py          # emit a conforming record
 python validator/validate.py conformance/valid/*.json
 python examples/environment_changes_the_answer.py   # why section 3.8 exists
+python examples/chain_resolves_by_digest.py         # walk a two-step lineage, section 6
 pip install jsonschema pytest && pytest -q  # the full conformance suite
 ```
 
