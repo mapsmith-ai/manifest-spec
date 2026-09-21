@@ -645,3 +645,52 @@ def test_a_rejoining_lineage_keeps_both_branches(tmp_path):
     assert reached == [root_digest, root_digest], (
         f"both branches must arrive at the same unproduced root; got {reached}"
     )
+
+
+def test_the_corpus_can_exercise_the_hardest_limit_in_section_6():
+    """A walkable record that failed, and a failed check that declares no severity.
+
+    Section 6 calls "a found hop is not a successful hop" the limit most likely
+    to be missed, and puts two MUSTs on it: read `verification[]`, and do not
+    read a missing `critical` as non-critical. A third party writing a walker
+    measures it against this directory, so the directory has to contain the
+    shape that catches the mistake -- otherwise the requirement is prose and
+    the first implementation to get it wrong gets it wrong unopposed.
+
+    On 2026-09-21 that is exactly what happened, and to us: the first real
+    walker written against section 6 folded the absent flag into "not
+    critical", and answered `verified: true` about a record announcing a
+    failure. Nothing in this corpus could have caught it. Of the eight valid
+    records then published, one carried `output` -- so only one was walkable at
+    all -- and that one had no failed check. Not one record was both.
+
+    Two assertions, because the two halves fail separately: a walkable failed
+    record, and a failed check with no `critical` on a record a walk can reach.
+    """
+    walkable_failures = []
+    silent_criticality = []
+    for path in VALID:
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if not (record.get("output") or {}).get("sha256"):
+            continue  # not reachable by a digest walk, so not this test's subject
+        failed = [
+            check
+            for check in record.get("verification", [])
+            if not check.get("passed", True)
+        ]
+        if failed:
+            walkable_failures.append(path.name)
+        if any("critical" not in check for check in failed):
+            silent_criticality.append(path.name)
+
+    assert walkable_failures, (
+        "no record in conformance/valid/ carries BOTH an output digest and a "
+        "failed check, so a walker can pass this corpus without ever meeting "
+        "the limit section 6 calls the one most likely to be missed"
+    )
+    assert silent_criticality, (
+        "no walkable record in conformance/valid/ has a failed check with no "
+        "`critical` field, so nothing here distinguishes a walker that reads "
+        "silence as reassurance from one that does not -- which is the defect "
+        "this test was written after finding"
+    )

@@ -1,0 +1,46 @@
+{
+  "spec_version": "1.0.0-draft.5",
+  "operation": "resample_raster",
+  "parameters": {
+    "resolution": 30,
+    "resampling": "bilinear"
+  },
+  "inputs": [
+    {
+      "path": "data/elevation_10m.tif",
+      "sha256": "3f1b7c0a2d5e48f6b9c1084ad7e2536f41c8b0d93a7e6528fc0b41d2e9a75634",
+      "crs": "EPSG:32610"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:32610",
+    "reason": "resampling is a grid operation and the source grid is already projected"
+  },
+  "engine": {
+    "name": "gdal",
+    "version": "3.9.2"
+  },
+  "verification": [
+    {
+      "name": "crs_present",
+      "passed": true,
+      "detail": "EPSG:32610",
+      "critical": true
+    },
+    {
+      "name": "x-somevendor:tile_alignment",
+      "passed": false,
+      "detail": "output grid origin is offset from the source by half a cell"
+    }
+  ],
+  "started_at": "2026-09-21T09:14:02Z",
+  "finished_at": "2026-09-21T09:14:06Z",
+  "producer": {
+    "name": "somevendor-gis",
+    "version": "2.4.0"
+  },
+  "output": {
+    "path": "data/elevation_30m.tif",
+    "sha256": "b7d4e1a90c3f527648de1b0937a5c48e2f6019bd3c8a745e0169fb2d84c3e057"
+  }
+}

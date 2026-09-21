@@ -108,6 +108,16 @@ writes and is one implementation of this specification, not its definition. The 
 useful exactly in proportion to how many producers that are not MapSmith emit it — hence the
 hundred-line emitter, the toolchain-free validator, and the permissive licences.
 
+MapSmith is also, as of 2026-09-21, the first **consumer** of §6: its `get_lineage` walks a
+chain of records by content digest. That is worth naming here and not in the specification,
+where the reference remains the twenty-line
+[`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) — a document that
+points at its own author's implementation as the thing to match is not a specification. Writing
+that consumer is what produced the second reading of §6's first limit: a failed check carrying
+no `critical` must not be read as a non-critical one, because absence means the producer made
+no claim. The first walker written against this text got it wrong, and now the text says so and
+`conformance/valid/` carries a record that catches it.
+
 ## Licences
 
 The specification text: **CC-BY-4.0** ([LICENSE-SPEC](LICENSE-SPEC)). Schema, validator,

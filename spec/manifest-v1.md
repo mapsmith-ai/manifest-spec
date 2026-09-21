@@ -262,7 +262,12 @@ from §3.6 or carries an `x-<producer>:` prefix.
 failed runs.
 
 **A conforming consumer** accepts any conforming record, ignores unknown fields, and does not
-require any recommended field.
+require any recommended field. **A consumer that walks a chain of records has two further
+obligations, and they are in §6** — read `verification[]` on every hop, and track the ancestors
+of the path currently being descended. They are stated there because that is where the walk is
+described, and they are pointed at from here because a section titled "what is deliberately out
+of scope" is not where an implementer goes looking for requirements. That is not hypothetical:
+the first walker written against this document skipped both readings of the first obligation.
 
 The [`conformance/`](../conformance/) directory holds records that MUST validate and records that
 MUST be rejected, each rejection with its expected reason. A validator that disagrees with that
@@ -334,6 +339,19 @@ unchanged label, wearing the other hat.
   read `verification[]` on every hop it resolves** and MUST NOT present a failed run as
   provenance without saying so. This is the limit most likely to be missed, because the format
   guarantees such records exist and nothing about a digest hints that one is unsound.
+
+  And there is a second reading of the same sentence that has to be closed, because the first
+  walker written against this section got it wrong. `critical` is OPTIONAL, and §3.6 says its
+  absence means the producer makes no claim about severity. **A walker MUST NOT treat a failed
+  check that carries no `critical` as a non-critical one.** Silence is not reassurance: of the
+  three things absence could mean — not serious, serious, nobody decided — reading it as the
+  first is the only one the producer did not say, and it is the one that turns a record
+  announcing a failure into a clean bill of health. A walker may report such a check as being of
+  undeclared severity, or as critical; it may not report the hop as sound. The correctness of
+  this is easy to check and easy to get wrong in a way no test notices, which is why it is a MUST
+  and not advice: `critical` is written by producers that care about the distinction and omitted
+  by every producer that does not, so the records where it is missing are exactly the records
+  written by the least careful producers.
 
   **The chain reaches only as far as producers recorded `output`**, which is RECOMMENDED and not
   REQUIRED for the reason §3.4 gives: a manifest may be emitted before the output is durably on
