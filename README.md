@@ -26,8 +26,19 @@ in this repository's history.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
 
-Cite it as `10.5281/zenodo.22205213`, which always resolves to the current version. To cite the
-exact draft you read, take the version DOI from the [Zenodo record](https://doi.org/10.5281/zenodo.22205213).
+Cite it as `10.5281/zenodo.22205213`. **It resolves to `1.0.0-draft.3`, archived 31 August 2026,
+and that is behind this repository** — `main` is at `draft.5`, and the only tag here is
+`v1.0.0-draft.3`. So there is no version DOI for the text above, and citing the concept DOI
+cites an older document than the one you are reading. To cite exactly what you read, use the
+commit: every normative claim in this repository is reachable at
+`https://github.com/mapsmith-ai/manifest-spec/blob/<commit>/spec/manifest-v1.md`.
+
+This sentence said the opposite until 2026-09-21 — that the DOI "always resolves to the current
+version", with a version DOI available for each draft. Neither was true of any reader since
+draft.4. Two drafts shipped without an archived release, which is the same discipline this
+document demands of a label six sections down: *a label is spent the moment it is published, and
+pushing is publishing.* Cutting the missing releases is an open decision, not an oversight
+nobody noticed.
 
 ## What is in this repository
 
