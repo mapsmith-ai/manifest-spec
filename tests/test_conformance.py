@@ -694,3 +694,59 @@ def test_the_corpus_can_exercise_the_hardest_limit_in_section_6():
         "silence as reassurance from one that does not -- which is the defect "
         "this test was written after finding"
     )
+
+
+def test_no_public_file_carries_a_mangled_character():
+    """UTF-8 read as cp1252 and saved back, on a page somebody reads.
+
+    Found on 2026-09-22 in the Argleton README, in the pasted terminal output
+    of a run: three lines in which a plus-minus sign and two em dashes had each
+    become a short run of Latin-1 punctuation. Public since the block was
+    written, and invisible to every other guard there because the file parsed,
+    the links resolved and the numbers were right. The engine blocks beside it
+    were clean, which is the tell: only the lines carrying one of those two
+    characters were touched, so the damage arrived through a console capture
+    and not through an editor.
+
+    The same guard runs in all three public repositories, because the way in
+    is the same everywhere: a terminal on this machine, a copy, a paste.
+
+    The markers are derived rather than listed -- each is what cp1252 makes of
+    a character these repositories actually use. A hand-written list would be
+    a finite map of the kind that has already gone stale here twice.
+    """
+    import subprocess
+
+    damage = set()
+    # Written as code points rather than typed: ruff rejects these characters
+    # in a string literal as ambiguous, which they are -- that is the point of
+    # them. Typing them would also put the damage this looks for into the file
+    # that looks for it, which is how the first version of this test failed.
+    suspect = "".join(chr(point) for point in (
+        0x00B1, 0x2014, 0x2013, 0x2018, 0x2019, 0x201C, 0x201D,
+        0x2026, 0x21D2, 0x00E8, 0x00E9, 0x00E0,
+    ))
+    for character in suspect:
+        mangled = character.encode("utf-8").decode("cp1252", errors="replace")
+        if chr(0xFFFD) not in mangled:
+            damage.add(mangled)
+
+    listed = subprocess.run(
+        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+    ).stdout.split()
+    damaged = []
+    for name in listed:
+        path = ROOT / name
+        if path.resolve() == Path(__file__).resolve():
+            continue
+        try:
+            text = path.read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for number, line in enumerate(text.splitlines(), 1):
+            if any(marker in line for marker in damage):
+                damaged.append(f"{name}:{number}")
+    assert not damaged, (
+        "these tracked lines carry cp1252 mojibake, which means a character was "
+        f"written once and saved twice: {damaged[:10]}"
+    )
