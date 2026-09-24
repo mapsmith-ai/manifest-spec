@@ -35,8 +35,12 @@ so it has no version DOI; it is citable only by commit. For five weeks neither h
 while this paragraph claimed the concept DOI "always resolves to the current version" — false
 for every reader since draft.4. That is the discipline this document demands of a label, six
 sections down (*a label is spent the moment it is published, and pushing is publishing*),
-applied to producers and not to us. `draft.5` was archived on 21 September 2026 and `draft.6` on
-24 September; releases are cut with the draft from now on rather than after it.
+applied to producers and not to us. `draft.5` was archived on 21 September 2026. `draft.6` was
+released on 24 September and **is not archived yet**: Zenodo accepted the release and has not
+created the record, so until it does the concept DOI still resolves to `draft.5` and `draft.6`
+is citable by its tag, `v1.0.0-draft.6`. This paragraph said it was archived, in the release
+itself, written before the archive existed; the archive is checked from outside now before a
+sentence claims it.
 
 ## What is in this repository
 
