@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.5",
+  "spec_version": "1.0.0-draft.6",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,7 +21,7 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.5`). Field names may still change; anything that does is visible
+**Status: draft** (`1.0.0-draft.6`). Field names may still change; anything that does is visible
 in this repository's history.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
@@ -35,8 +35,8 @@ so it has no version DOI; it is citable only by commit. For five weeks neither h
 while this paragraph claimed the concept DOI "always resolves to the current version" — false
 for every reader since draft.4. That is the discipline this document demands of a label, six
 sections down (*a label is spent the moment it is published, and pushing is publishing*),
-applied to producers and not to us. `draft.5` is archived as of 21 September 2026; releases are
-cut with the draft from now on rather than after it.
+applied to producers and not to us. `draft.5` was archived on 21 September 2026 and `draft.6` on
+24 September; releases are cut with the draft from now on rather than after it.
 
 ## What is in this repository
 

@@ -1,0 +1,83 @@
+{
+  "spec_version": "1.0.0-draft.6",
+  "producer": {
+    "name": "example-producer",
+    "version": "0.1.0"
+  },
+  "operation": "buffer_layer",
+  "parameters": {
+    "distance_meters": 300.0
+  },
+  "inputs": [
+    {
+      "path": "rivers.gpkg",
+      "sha256": "b24b884f49eee431133d443d842557d3ed21f3978e2c4b1e8e072fd1240effe8",
+      "crs": "EPSG:4326"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:32632",
+    "reason": "estimated UTM zone for metric buffering on a geographic CRS",
+    "round_trip": {
+      "transformation": {
+        "pipeline": "+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm +zone=32 +ellps=WGS84",
+        "accuracy_m": 0.0,
+        "is_ballpark": false
+      }
+    }
+  },
+  "engine": {
+    "name": "example-engine",
+    "version": "1.0"
+  },
+  "environment": {},
+  "verification": [
+    {
+      "name": "input_crs_present",
+      "passed": true,
+      "detail": "'input_path': EPSG:4326"
+    },
+    {
+      "name": "input_not_empty",
+      "passed": true,
+      "detail": "'input_path': 1 features"
+    },
+    {
+      "name": "result_not_empty",
+      "passed": true,
+      "detail": "1 features"
+    },
+    {
+      "name": "crs_present",
+      "passed": true,
+      "detail": "EPSG:4326"
+    },
+    {
+      "name": "crs_matches",
+      "passed": true,
+      "detail": "expected EPSG:4326, got EPSG:4326"
+    },
+    {
+      "name": "geometry_valid",
+      "passed": true,
+      "detail": "all valid"
+    },
+    {
+      "name": "x-mapsmith:no_geometry_is_empty",
+      "passed": true,
+      "detail": "none empty"
+    },
+    {
+      "name": "feature_count_exact",
+      "passed": true,
+      "detail": "expected 1, got 1"
+    },
+    {
+      "name": "geometry_types",
+      "passed": true,
+      "detail": "expected subset of ['MultiPolygon', 'Polygon'], got ['Polygon']"
+    }
+  ],
+  "started_at": "2026-08-18T10:15:03Z",
+  "finished_at": "2026-08-18T10:15:04Z"
+}

@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.5
+# Provenance manifests for geospatial datasets — v1.0.0-draft.6
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -170,8 +170,9 @@ implementation's internals stays an extension, however useful.
 ### 3.7 `crs_decisions`: the shape
 
 `crs_decisions` is where this format earns its keep, so its structure is specified rather than
-left to each producer. It is an object; `analysis_crs` and `reason` are strings; other values may
-be of any type. When a producer records a decision it SHOULD use these keys:
+left to each producer. It is an object; `analysis_crs` and `reason` are strings;
+`transformation` and `round_trip` are objects of the shapes defined below; other values may be of
+any type. When a producer records a decision it SHOULD use these keys:
 
 | key | holds |
 |---|---|
@@ -180,8 +181,50 @@ be of any type. When a producer records a decision it SHOULD use these keys:
 | `source_crs` | the coordinate system the coordinates were in before the operation |
 | `target_crs` | the coordinate system they were put into, when the operation transformed them |
 | `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent), `better_available_m` (see below) |
+| `round_trip` | when the operation computed in `analysis_crs` and wrote its output back in the caller's CRS: an object with two legs, `transformation` (the caller's CRS to `analysis_crs`) and `return_transformation` (`analysis_crs` back to the caller's CRS), each of the same shape as `transformation` above (see below) |
 
 Additional keys are permitted under the extension rule above.
+
+**`round_trip`, and the two rules that come with it.** An operation that needs metres on a layer
+in degrees computes somewhere else and hands back its output in the CRS it was given. The trip is
+not free: an estimated UTM zone is usually on WGS 84 whatever the input's datum is, so a layer on
+NAD27 crosses a datum on the way out and again on the way back — metres each way, which largely
+cancel over one feature, which is why nobody sees them. A record that says nothing about the trip
+leaves the reader to assume it did not happen. New in `1.0.0-draft.6`.
+
+*The legs are two, and each is measured.* They are different records even on the simplest pair
+there is: from WGS 84 to a UTM zone on WGS 84 the outbound leg is the projection and the return
+leg is its *inverse*, so a copy of the outbound record would name the wrong operation. Across a
+datum change the engine may also choose the operation per coordinate rather than per pair, which
+makes the reverse leg something to ask the engine about rather than to assume. A producer MUST
+record each leg as the engine reports it for that direction, and MUST NOT derive one from the
+other.
+
+*The name is fixed.* A producer that records this fact MUST use `round_trip` and MUST NOT record
+it under a prefixed extension name — for the reason section 3.6 gives for check names: a fact two
+producers name differently is two facts to a consumer.
+
+*The moment is fixed.* `round_trip` MUST be written only once the output is back in the caller's
+CRS. A record written on a failing path — which section 3.1 requires when verification fails,
+and which a producer may also write when the run fails before verifying — MUST NOT carry
+`round_trip` for a trip that did not complete. This rule is here because the reference
+implementation broke it: it built the key before the return leg ran, and a return leg that raised
+produced a record asserting a round trip that never finished. The failure record survived the
+error, as it must; the sentence inside it had become false. Where the output ended up is
+`output.crs`, not a field of this object — see the last paragraph of this section.
+
+*How much of this a validator can check, which is less than the three rules suggest.* The shape
+it can: both legs present, each of the shape of `transformation`. Of the name rule it checks one
+spelling, `x-<producer>:round_trip`, which is the likeliest way to break it — a producer that did
+not migrate — and not the rule itself, since the same fact under an unrelated name is not
+something a program can recognise. That a leg was measured rather than derived, no validator can
+see. And the moment rule it cannot check at all: a record cannot show whether the trip it
+describes finished, because the output can come home and the run still fail afterwards — a write
+that raises once the coordinates are back — and then `round_trip` is true and belongs in the
+record. So a failed run carrying `round_trip` is not evidence of a violation, and a passing
+validator is not evidence of compliance. This is said so that nobody reads the conformance suite
+as covering these rules; the reference implementation tests the moment at the point where the trip
+happens.
 
 **`better_available_m`, and the difference it is the only field that carries.** When
 `is_ballpark` is true and a published operation for this pair nevertheless exists, this holds that

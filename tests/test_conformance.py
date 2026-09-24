@@ -199,6 +199,32 @@ def _json_type(value: object) -> str:
     return "object"
 
 
+def _resolve(spec: object) -> object:
+    """A sub-schema with its local `$ref` followed, sibling keys kept.
+
+    Since 1.0.0-draft.6 the two legs of `crs_decisions.round_trip` are declared
+    as `{"$ref": "#/properties/crs_decisions/properties/transformation"}`, and a
+    `$ref` has no `properties` and no `type` of its own. Every derivation in this
+    file walked `properties` and read `type`, so all three -- the mutations, the
+    leaves they must cover, and the nullable paths -- stepped over both legs in
+    silence. Section 4 says this suite "mutates every field the schema
+    declares"; for the eight keys inside the legs that was false, and the
+    `conformita-manifest` review found it before the draft was tagged. One
+    resolver, called by all three, so they cannot disagree about what a
+    reference means.
+    """
+    if not isinstance(spec, dict) or "$ref" not in spec:
+        return spec
+    pointer = spec["$ref"]
+    assert pointer.startswith("#/"), f"only local references are followed: {pointer}"
+    target: object = SCHEMA
+    for step in pointer[2:].split("/"):
+        target = target[step]
+    merged = dict(target)
+    merged.update({k: v for k, v in spec.items() if k != "$ref"})
+    return merged
+
+
 def _wrong_value(spec: dict) -> object:
     """A value of a type this sub-schema does not allow, or _MISSING if untyped."""
     declared = spec.get("type")
@@ -230,6 +256,7 @@ def _mutations() -> list[tuple[tuple, object]]:
 
     def descend(prefix: tuple, spec: dict) -> None:
         for sub, sub_spec in (spec.get("properties") or {}).items():
+            sub_spec = _resolve(sub_spec)
             wrong = _wrong_value(sub_spec)
             if wrong is not _MISSING:
                 found.append(((*prefix, sub), wrong))
@@ -313,6 +340,14 @@ def _maximal_record() -> dict:
         # the tests below cannot reach.
         "better_available_m": None,
     }
+    # Both legs, each with every key of a transformation, because a field whose
+    # container is absent cannot be mutated -- and draft.6 put eight of them
+    # inside this one.
+    record["crs_decisions"]["round_trip"] = {
+        leg: {"pipeline": "noop", "accuracy_m": 0.0, "is_ballpark": False,
+              "better_available_m": None}
+        for leg in ("transformation", "return_transformation")
+    }
     return record
 
 
@@ -352,6 +387,12 @@ def test_the_mutation_table_covers_the_declared_surface():
         ("crs_decisions", "transformation", "pipeline"),
         ("crs_decisions", "transformation", "accuracy_m"),
         ("crs_decisions", "transformation", "is_ballpark"),
+        # The legs of `round_trip`, reached only through a `$ref`: named for the
+        # same reason as the three above, because the derivation stepped over
+        # them and the container assertion passed anyway.
+        ("crs_decisions", "round_trip"),
+        ("crs_decisions", "round_trip", "transformation", "is_ballpark"),
+        ("crs_decisions", "round_trip", "return_transformation", "accuracy_m"),
     ):
         assert expected in paths, f"the schema no longer yields a mutation for {expected}"
 
@@ -361,6 +402,7 @@ def test_the_mutation_table_covers_the_declared_surface():
     def leaves(prefix: tuple, spec: dict) -> set[tuple]:
         out: set[tuple] = set()
         for sub, sub_spec in (spec.get("properties") or {}).items():
+            sub_spec = _resolve(sub_spec)
             if not isinstance(sub_spec, dict):
                 continue
             if sub_spec.get("properties"):
@@ -451,6 +493,7 @@ def _nullable_paths() -> list[tuple]:
 
     def descend(prefix: tuple, spec: dict) -> None:
         for sub, sub_spec in (spec.get("properties") or {}).items():
+            sub_spec = _resolve(sub_spec)
             if nullable(sub_spec):
                 found.append((*prefix, sub))
             if isinstance(sub_spec, dict) and sub_spec.get("properties"):
