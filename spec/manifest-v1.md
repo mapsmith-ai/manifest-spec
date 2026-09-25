@@ -318,6 +318,18 @@ from §3.6 or carries an `x-<producer>:` prefix.
 **A conforming producer** emits a conforming record for every dataset it writes, including
 failed runs.
 
+**The `conformance/` directory cannot prove that sentence, and says so.** It validates records;
+whether a producer leaves a dataset with no record beside it is a property of the producer, and
+the only way to see it is to run the producer and make it fail. Every record a producer emits can
+conform while the producer does not: on 2026-09-25 the reference implementation had 28 of 58
+writers doing exactly that, and no validator could have noticed. A producer tests the sentence on
+itself this way: for every operation that writes, inject a failure **after the output's bytes
+reach the disk** — once in the write itself, once after it — and require, beside every dataset
+that failure leaves, a record that says the run did not complete. A sabotage that never fires
+proves nothing, so the test fails when it does not. MapSmith's
+[`tests/test_failure_manifest.py`](https://github.com/mapsmith-ai/MapSmith/blob/main/tests/test_failure_manifest.py)
+is one such test, deriving the operations from its own catalogue.
+
 **A conforming consumer** accepts any conforming record, ignores unknown fields, and does not
 require any recommended field. **A consumer that walks a chain of records has two further
 obligations, and they are in §6** — read `verification[]` on every hop, and track the ancestors
