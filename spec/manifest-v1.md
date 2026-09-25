@@ -281,7 +281,7 @@ grid on the machine.
 `AREA_OR_POINT` was in that list until a clarification after `draft.6`, and did not belong: it is
 a tag **inside** the raster, so it is data, and the definition above excludes it. What a producer
 concludes from it — whether a value describes a cell or a point at its centre — is a decision
-about where the values sit, and goes in `crs_decisions` under the producer's own key.
+about where the values sit, and goes in `crs_decisions` under an `x-<producer>:<name>` key (§3.7).
 
 **Why a field of its own.** `parameters` holds the parameters of the operation — what the caller
 asked for. `engine` holds what computed it. Neither holds the state of the machine, and that state
@@ -321,9 +321,11 @@ environment. An empty or absent `environment` claims nothing, exactly like an ab
 
 ## 4. Conformance
 
-**A conforming record** validates against the schema and satisfies the semantic rules a schema
-cannot express: `finished_at >= started_at`, and every `verification[].name` is either a core name
-from §3.6 or carries an `x-<producer>:` prefix.
+**A conforming record** validates against the schema and satisfies the rule the schema cannot
+express, `finished_at >= started_at`. Two naming rules are part of the schema and are worth
+stating because a consumer branches on them: every `verification[].name` is a core name from §3.6
+or carries an `x-<producer>:` prefix, and so, since `1.0.0-draft.7`, does every key of
+`crs_decisions` that §3.7 does not define.
 
 **A conforming producer** emits a conforming record for every dataset it writes, including
 failed runs.
