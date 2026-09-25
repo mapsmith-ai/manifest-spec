@@ -22,14 +22,14 @@
   },
   "repairs": [
     {
-      "round": 1,
+      "x-example:round": 1,
       "check": "geometry_valid",
       "action": "make_valid on 1 of 12 features: a ring crossing itself",
       "error": null,
       "resolved": true
     },
     {
-      "round": 1,
+      "x-example:round": 1,
       "check": "x-example:hole_orientation",
       "action": null,
       "error": "GEOSException: TopologyException at 512000 4482000",

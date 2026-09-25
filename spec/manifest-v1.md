@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.7
+# Provenance manifests for geospatial datasets — v1.0.0-draft.8
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -115,8 +115,9 @@ silently differs from what ran is a worse defect than the secret it protects), `
 **The shape of a `repairs` entry, new in `1.0.0-draft.5`.** Until then this field was declared
 `type: object` and nothing more, so two producers disclosing the same repair could share no key
 and both conform — which is disclosure a consumer cannot read. A producer that records a repair
-MUST use these names for these meanings, and MUST NOT use them for anything else; other keys are
-permitted under section 3.5 and SHOULD carry a producer prefix.
+MUST use these names for these meanings, and MUST NOT use them for anything else; any other key
+MUST be named `x-<producer>:<name>`, as in §3.6. (A SHOULD until `1.0.0-draft.8`, when the rule
+became the same everywhere the format lets a producer add a key: one prefix, one grammar.)
 
 | key | meaning |
 |---|---|
@@ -174,7 +175,10 @@ A producer performing none of these is unusual but conforming: the core constrai
 **Extensions.** Any other check MUST be named `x-<producer>:<name>` — for example
 `x-mapsmith:no_invented_class_codes`. A name that is neither in the core nor prefixed is a
 conformance error: without that rule the vocabulary becomes, one producer at a time, no
-vocabulary at all.
+vocabulary at all. The whole name matches the grammar, and nothing follows it — not even a line
+break, which a regular expression ending in `$` accepts in some languages and rejects in the one
+JSON Schema prescribes (clarified in `1.0.0-draft.8`, when the reference validator was found
+accepting it).
 
 The core is deliberately small. A check enters it only if an independent producer could
 reasonably compute the same thing and mean the same by it; anything that depends on one
@@ -203,6 +207,13 @@ extension rule above", which could be read as §3.5 — a SHOULD with no syntax 
 MUST with one; the reference implementation applied the second, and an emitter reading only this
 document had no reason to. This is the field where a consumer asks *which of these keys are the
 format's?*, and without a fixed prefix the answer is one producer at a time, which is no answer.
+
+**And the same inside the objects this section defines**, since `1.0.0-draft.8`: a key of a
+`transformation` other than `pipeline`, `accuracy_m`, `is_ballpark` and `better_available_m`, and a
+key of `round_trip` other than its two legs, MUST be `x-<producer>:<name>`. Draft.7 stopped the
+rule at the first level, and the ambiguity it closed there stayed open one level down: the
+reference implementation writes `x-mapsmith:chosen_by` inside a transformation by its own rule,
+and nothing here told anyone else to.
 
 **`round_trip`, and the two rules that come with it.** An operation that needs metres on a layer
 in degrees computes somewhere else and hands back its output in the CRS it was given. The trip is

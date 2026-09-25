@@ -1,0 +1,61 @@
+{
+  "spec_version": "1.0.0-draft.8",
+  "operation": "hillshade",
+  "parameters": {
+    "azimuth": 315.0,
+    "altitude": 30.0
+  },
+  "inputs": [
+    {
+      "path": "fixtures/dem.tif",
+      "sha256": "166b1e4e7bc975d81ba049311c5713365e090dd1e8944a944ca241acf22633fa",
+      "crs": "EPSG:32610"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:32610",
+    "reason": "hillshade computed in the DEM's own projected CRS",
+    "x-somevendor:raster_registration": "area",
+    "x-somevendor:raster_registration_reason": "the file declares AREA_OR_POINT=Area",
+    "transformation": {
+      "pipeline": "+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm +zone=32 +ellps=WGS84",
+      "accuracy_m": 0.0,
+      "is_ballpark": false,
+      "x-somevendor:chosen_by": "the engine"
+    },
+    "round_trip": {
+      "transformation": {
+        "pipeline": "+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm +zone=32 +ellps=WGS84",
+        "accuracy_m": 0.0,
+        "is_ballpark": false
+      },
+      "return_transformation": {
+        "pipeline": "+proj=pipeline +step +inv +proj=utm +zone=32 +ellps=WGS84 +step +proj=unitconvert +xy_in=rad +xy_out=deg",
+        "accuracy_m": 0.0,
+        "is_ballpark": false
+      },
+      "x-somevendor:legs_measured": "both"
+    }
+  },
+  "engine": {
+    "name": "whitebox-workflows",
+    "version": "2.0.6"
+  },
+  "verification": [
+    {
+      "name": "crs_present",
+      "passed": true,
+      "detail": "EPSG:32610"
+    }
+  ],
+  "started_at": "2026-09-25T10:12:04Z",
+  "finished_at": "2026-09-25T10:12:05Z",
+  "repairs": [
+    {
+      "action": "make_valid",
+      "check": "geometry_valid",
+      "resolved": true,
+      "x-somevendor:round": "1"
+    }
+  ]
+}

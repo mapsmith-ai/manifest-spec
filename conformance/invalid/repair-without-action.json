@@ -22,7 +22,7 @@
   },
   "repairs": [
     {
-      "round": 1,
+      "x-example:round": 1,
       "check": "geometry_valid",
       "resolved": true
     }
