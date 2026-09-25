@@ -270,8 +270,13 @@ why, which is the half that cannot be recovered from the data afterwards.
 
 RECOMMENDED. An object of strings holding the configuration that influenced the result and lives
 neither in the data nor in the call: `PROJ_NETWORK`, the `GDAL_*` variables that change how a
-dataset is read, a project-level ellipsoid or datum setting, `AREA_OR_POINT`, the presence or
-absence of a datum grid on the machine.
+dataset is read, a project-level ellipsoid or datum setting, the presence or absence of a datum
+grid on the machine.
+
+`AREA_OR_POINT` was in that list until a clarification after `draft.6`, and did not belong: it is
+a tag **inside** the raster, so it is data, and the definition above excludes it. What a producer
+concludes from it — whether a value describes a cell or a point at its centre — is a decision
+about where the values sit, and goes in `crs_decisions` under the producer's own key.
 
 **Why a field of its own.** `parameters` holds the parameters of the operation — what the caller
 asked for. `engine` holds what computed it. Neither holds the state of the machine, and that state
