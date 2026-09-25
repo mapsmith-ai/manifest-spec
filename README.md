@@ -35,12 +35,16 @@ so it has no version DOI; it is citable only by commit. For five weeks neither h
 while this paragraph claimed the concept DOI "always resolves to the current version" — false
 for every reader since draft.4. That is the discipline this document demands of a label, six
 sections down (*a label is spent the moment it is published, and pushing is publishing*),
-applied to producers and not to us. `draft.5` was archived on 21 September 2026 and `draft.6`
-on 24 September, which is what the concept DOI resolves to today. The release said `draft.6` was archived before the
-record existed; the correction that followed said it was not, which was true when it was
-written and stopped being true twelve minutes later, when Zenodo created the record, and stayed
-here for a day. A sentence about an archive is a claim about somebody else's system, so it is
-now checked against Zenodo's API rather than written from our side of the upload.
+applied to producers and not to us. Every draft from `draft.5` on is archived, and the archive
+lags the tag: on 25 September 2026 Zenodo took about ninety minutes to create each record. So
+during the hours after a release the concept DOI still resolves to the previous draft, and the
+tag is the way to cite the new one until the record exists.
+
+This paragraph used to say which draft the DOI resolves to *today*, and was wrong three times in
+two days: once before a record existed, once after it appeared, and once more when the next one
+did. It also claimed that archive sentences were checked against Zenodo's API, and nothing here
+checks them. A sentence about somebody else's system that has to be true at every moment is a
+sentence nobody can keep true, so this one says only what does not move.
 
 ## What is in this repository
 
