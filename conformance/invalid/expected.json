@@ -2,6 +2,7 @@
   "backslash-path.json": "backslash",
   "check-name-outside-vocabulary.json": "neither a core check name",
   "check-without-detail.json": "detail",
+  "crs-decision-key-without-prefix.json": "neither a key section 3.7 defines",
   "crs-decision-not-a-string.json": "`crs_decisions.analysis_crs` must be a string",
   "empty-verification.json": "at least one",
   "engine-without-version.json": "engine.version",

@@ -2,7 +2,7 @@
   "upload_type": "publication",
   "publication_type": "technicalnote",
   "title": "Provenance manifests for geospatial datasets",
-  "version": "1.0.0-draft.6",
+  "version": "1.0.0-draft.7",
   "creators": [
     {"name": "The MapSmith project"}
   ],

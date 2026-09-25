@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.6
+# Provenance manifests for geospatial datasets — v1.0.0-draft.7
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -197,7 +197,12 @@ records a decision it SHOULD use these keys:
 | `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent), `better_available_m` (see below) |
 | `round_trip` | when the operation computed in `analysis_crs` and wrote its output back in the caller's CRS: an object with two legs, `transformation` (the caller's CRS to `analysis_crs`) and `return_transformation` (`analysis_crs` back to the caller's CRS), each of the same shape as `transformation` above (see below) |
 
-Additional keys are permitted under the extension rule above.
+**Any other key MUST be named `x-<producer>:<name>`**, in the grammar of an extension check name
+(§3.6). New in `1.0.0-draft.7`. Until then this sentence permitted additional keys "under the
+extension rule above", which could be read as §3.5 — a SHOULD with no syntax — or as §3.6 — a
+MUST with one; the reference implementation applied the second, and an emitter reading only this
+document had no reason to. This is the field where a consumer asks *which of these keys are the
+format's?*, and without a fixed prefix the answer is one producer at a time, which is no answer.
 
 **`round_trip`, and the two rules that come with it.** An operation that needs metres on a layer
 in degrees computes somewhere else and hands back its output in the CRS it was given. The trip is
