@@ -92,6 +92,19 @@ one, and therefore false on every path that fails between the decision and the w
 that cannot compute it — because the write has not happened — SHOULD omit it rather than predict
 it.
 
+**Optional fields of the mandatory objects.** The schema has carried these since `1.0.0-draft.3`,
+and until this paragraph was added — after `draft.6` was tagged — the prose did not describe
+them, so a producer reading it alone would not emit them and a consumer would not know what their
+absence means. It is a clarification in the sense of §5: no record's conformance moves, because
+the schema already said all of it.
+
+| field | holds |
+|---|---|
+| `verification[].critical` | boolean: whether a failure of this check should have stopped the pipeline. **Absent means the producer makes no claim about severity** — not that the check is minor (§6 says what a consumer may not conclude from that silence) |
+| `verification[].hint` | string or null: what to do about a failure, for the reader who has to act on it |
+| `verification[].argument` | string or null: which input or parameter the check is about. Without it, one check run on two inputs produces two identically named entries that a consumer indexing by name collapses into one |
+| `inputs[].crs` | string or null: the input's coordinate reference system as a short label (e.g. `EPSG:32610`), null when it declares none. A label, not an identity: a consumer comparing coordinate systems compares the systems, not the spellings |
+
 `crs_decisions` (each decision **with its reason** — the what without the why loses the part an
 auditor needs), `notes` (how inputs were handled before the engine saw them), `repairs` (every
 mechanical repair, disclosed — an undisclosed repair makes the manifest describe a file that
@@ -170,9 +183,10 @@ implementation's internals stays an extension, however useful.
 ### 3.7 `crs_decisions`: the shape
 
 `crs_decisions` is where this format earns its keep, so its structure is specified rather than
-left to each producer. It is an object; `analysis_crs` and `reason` are strings;
-`transformation` and `round_trip` are objects of the shapes defined below; other values may be of
-any type. When a producer records a decision it SHOULD use these keys:
+left to each producer. It is an object; `analysis_crs` and `reason` are strings; `source_crs`
+and `target_crs` are strings or null; `transformation` and `round_trip` are objects of the shapes
+defined below; keys this section does not define may hold values of any type. When a producer
+records a decision it SHOULD use these keys:
 
 | key | holds |
 |---|---|
@@ -384,7 +398,7 @@ unchanged label, wearing the other hat.
   guarantees such records exist and nothing about a digest hints that one is unsound.
 
   And there is a second reading of the same sentence that has to be closed, because the first
-  walker written against this section got it wrong. `critical` is OPTIONAL, and §3.6 says its
+  walker written against this section got it wrong. `critical` is OPTIONAL, and §3.4 says its
   absence means the producer makes no claim about severity. **A walker MUST NOT treat a failed
   check that carries no `critical` as a non-critical one.** Silence is not reassurance: of the
   three things absence could mean — not serious, serious, nobody decided — reading it as the
