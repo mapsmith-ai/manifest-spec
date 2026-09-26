@@ -31,10 +31,10 @@ version. To cite the exact draft you read, take its version DOI from the
 [Zenodo record](https://doi.org/10.5281/zenodo.22205213).
 
 **One gap, stated because a reader can hit it.** `draft.4` was never tagged and never archived,
-so it has no version DOI; it is citable only by commit. For five weeks neither had `draft.5`,
+so it has no version DOI; it is citable only by commit. Until 21 September 2026 neither had `draft.5`,
 while this paragraph claimed the concept DOI "always resolves to the current version" — false
-for every reader since draft.4. That is the discipline this document demands of a label, six
-sections down (*a label is spent the moment it is published, and pushing is publishing*),
+for every reader since draft.4. That is the discipline the specification demands of a label in
+[§5](spec/manifest-v1.md#5-versioning) (*a label is spent the moment it is published, and pushing is publishing*),
 applied to producers and not to us. Every draft from `draft.5` on is archived, and the archive
 lags the tag: on 25 September 2026 Zenodo took about ninety minutes to create each record. So
 during the hours after a release the concept DOI still resolves to the previous draft, and the

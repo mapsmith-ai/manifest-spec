@@ -22,6 +22,15 @@ jobs:
       - run: pip install pytest jsonschema ruff==0.16.3
       - run: ruff check .
       - run: pytest -q
+      # The README's quickstart for outsiders runs the suite from the GitHub
+      # tarball, which is not a git checkout. It failed there on 2026-09-26 --
+      # a test called `git ls-files` -- while this job, which runs in a
+      # checkout, was green. `git archive` is the same file set as the tarball.
+      - name: The suite passes outside a git checkout, as the README tells readers to run it
+        run: |
+          mkdir "$RUNNER_TEMP/tarball"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/tarball"
+          cd "$RUNNER_TEMP/tarball" && pytest -q
       # The floor is deliberately old: a validator anyone can run must run on
       # the Python they already have.
       - run: python validator/validate.py conformance/valid/*.json

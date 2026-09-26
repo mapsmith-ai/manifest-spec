@@ -774,9 +774,22 @@ def test_no_public_file_carries_a_mangled_character():
         if chr(0xFFFD) not in mangled:
             damage.add(mangled)
 
-    listed = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout.split()
+    # The README tells readers to run this suite from the GitHub tarball, which
+    # is not a git checkout: `git ls-files` exits 128 there, and the one command
+    # offered to outsiders failed on a test about typography. Outside a checkout
+    # every extracted file is a published file, so walking the tree is the same set.
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+        ).stdout.split()
+    except (OSError, subprocess.CalledProcessError):
+        listed = [
+            path.relative_to(ROOT).as_posix()
+            for path in ROOT.rglob("*")
+            if path.is_file()
+            and not any(part.startswith(".") or part == "__pycache__"
+                        for part in path.relative_to(ROOT).parts[:-1])
+        ]
     damaged = []
     for name in listed:
         path = ROOT / name
