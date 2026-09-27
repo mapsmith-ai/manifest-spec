@@ -66,3 +66,24 @@ def test_an_unknown_capture_version_is_refused(tmp_path):
 def test_tool_ids_follow_the_arcpy_naming():
     assert capture._tool_id("analysis.Buffer") == "Buffer_analysis"
     assert capture._tool_id(None) == "unknown_tool"
+
+
+def test_an_output_that_is_also_an_input_is_an_in_place_edit():
+    cap = {"parameters": [
+        {"name": "in_table", "is_input": True, "path": r"C:\d\t.gdb\roads"},
+        {"name": "out_table", "is_input": False, "path": "C:/d/t.gdb/roads"},
+        {"name": "other_out", "is_input": False, "path": "C:/d/t.gdb/new"},
+    ]}
+    assert capture.writes_to_input(cap) == {"C:/d/t.gdb/roads"}
+
+
+def test_the_record_an_edit_would_overwrite_is_kept_under_a_dated_name(tmp_path):
+    sidecar = tmp_path / "t.gdb.roads.provenance.json"
+    sidecar.write_text("{}", encoding="utf-8")
+    kept = capture.keep_previous(sidecar, "2026-09-27T17:00:00Z")
+    assert kept.name == "t.gdb.roads.20260927T170000Z.provenance.json"
+    assert kept.exists() and not sidecar.exists()
+    sidecar.write_text("{}", encoding="utf-8")
+    again = capture.keep_previous(sidecar, "2026-09-27T17:00:00Z")
+    assert again.name == "t.gdb.roads.20260927T170000Z-2.provenance.json"
+    assert capture.keep_previous(tmp_path / "absent.provenance.json", "x") is None

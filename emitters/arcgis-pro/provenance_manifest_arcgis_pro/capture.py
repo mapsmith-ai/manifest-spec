@@ -19,7 +19,8 @@ count, and writes the manifest beside it.
 The capture, written by the add-in (``capture_version`` 1)::
 
     {"capture_version": 1, "tool": "analysis.Buffer", "run_id": "...",
-     "launch": "geoprocessing_pane" | "python_window" | "project_history",
+     "launch": "geoprocessing_pane" | "python_window" | "code" | "project_history",
+     "inputs_hashed": "at_start" | "after_run",
      "started_at": "...Z", "finished_at": "...Z",
      "parameters": [{"name", "type", "value", "is_input", "path"}],
      "succeeded": true, "error_code": 0, "messages": ["..."],
@@ -43,9 +44,8 @@ CAPTURE_VERSION = 1
 # When the input digests were taken, stated in the record because it decides
 # what they prove (see the module docstring).
 TIMING = {
-    "geoprocessing_pane": "at tool start, concurrently with the tool",
-    "python_window": "at tool start, concurrently with the tool",
-    "project_history": "after the run, from the project's geoprocessing history",
+    "at_start": "at tool start, concurrently with the tool",
+    "after_run": "after the run: the tool start carried no parameters to hash from",
 }
 
 
@@ -83,6 +83,50 @@ def start(path: Path) -> dict:
     capture["input_digests_taken_at"] = rec.utcnow()
     _save(path, capture)
     return capture
+
+
+def _norm(path: str) -> str:
+    return str(path).replace("\\", "/").rstrip("/").lower()
+
+
+def writes_to_input(capture: dict) -> set[str]:
+    """Outputs that are also inputs: the tool edited a dataset in place.
+
+    Calculate Field, Add Field, Append and the like report the dataset they
+    change as a derived output with the same value as an input. Their input
+    digest was taken concurrently with the edit (or after it), so it cannot be
+    presented as the state the tool read; and the manifest they write sits where
+    the record of the operation that created the dataset sat.
+    """
+    params = capture.get("parameters", [])
+    ins = {_norm(p["path"]) for p in params if p.get("is_input") and p.get("path")}
+    return {
+        p["path"]
+        for p in params
+        if not p.get("is_input") and p.get("path") and _norm(p["path"]) in ins
+    }
+
+
+def keep_previous(sidecar: Path, stamp: str) -> Path | None:
+    """Keep the record an in-place edit would overwrite, under a dated name.
+
+    `<name>.provenance.json` becomes `<name>.<stamp>.provenance.json`: still a
+    `*.provenance.json` file a lineage walker scanning a folder will index, so
+    the history of the dataset survives its edit. Where such a record belongs is
+    not defined by the specification yet; this is the emitter's choice, named
+    in the new record.
+    """
+    if not sidecar.exists():
+        return None
+    base = sidecar.name[: -len(".provenance.json")]
+    safe = stamp.replace(":", "").replace("-", "")
+    target = sidecar.with_name(f"{base}.{safe}.provenance.json")
+    n = 1
+    while target.exists():
+        n += 1
+        target = sidecar.with_name(f"{base}.{safe}-{n}.provenance.json")
+    sidecar.replace(target)
+    return target
 
 
 def _tool_id(tool: str | None) -> str:
@@ -140,7 +184,8 @@ def finish(path: Path) -> list[Path]:
         )
     messages = [{"severity": "info", "text": m} for m in capture.get("messages", [])]
     engine = arcgis._engine()
-    timing = TIMING.get(capture.get("launch"), "unknown")
+    timing = TIMING.get(capture.get("inputs_hashed"), "unknown")
+    in_place = {_norm(x) for x in writes_to_input(capture)}
     manifests = []
     outputs = [
         p["path"] for p in capture.get("parameters", []) if not p.get("is_input") and p.get("path")
@@ -185,7 +230,17 @@ def finish(path: Path) -> list[Path]:
 
             container, layer = split_container(out_path)
             digest = DatasetDigest(container.as_posix(), "0" * 64, "file", layer)
-        manifests.append(rec.write(record, rec.sidecar_path(digest)))
+        sidecar = rec.sidecar_path(digest)
+        if _norm(out_path) in in_place:
+            record[f"{rec.PREFIX}:writes_to_input"] = True
+            record[f"{rec.PREFIX}:input_digests_taken"] = (
+                timing + "; the tool edits this input in place, so the input digest may "
+                "already describe the edited state"
+            )
+            kept = keep_previous(sidecar, record["finished_at"])
+            if kept is not None:
+                record[f"{rec.PREFIX}:previous_record"] = kept.name
+        manifests.append(rec.write(record, sidecar))
     return manifests
 
 
