@@ -80,6 +80,14 @@ def _posix(value: str) -> str:
     return str(value).replace("\\", "/")
 
 
+def _has_crs_slot(path: str) -> bool:
+    """A table has no spatial reference to declare, so crs_present does not apply."""
+    try:
+        return hasattr(arcpy.Describe(path), "spatialReference")
+    except Exception:
+        return False
+
+
 def _crs(path: str) -> str | None:
     try:
         sr = arcpy.Describe(path).spatialReference
@@ -171,10 +179,16 @@ def run(tool: str, *args, **kwargs):
     started = rec.utcnow()
     result = None
     error: str | None = None
+    raised: BaseException | None = None
     try:
         result = func(*args, **kwargs)
     except arcpy.ExecuteError:
         error = arcpy.GetMessages(2)
+    except Exception as exc:
+        # Not only a tool error: a bad argument or a crash in ArcPy itself must
+        # leave a record too, and then propagate unchanged.
+        error = f"{type(exc).__name__}: {exc}"
+        raised = exc
     finished = rec.utcnow()
 
     # The parameters the tool ran with: Result lists input values in parameter
@@ -267,14 +281,15 @@ def run(tool: str, *args, **kwargs):
         except (FileNotFoundError, ValueError):
             digest = None  # a failed tool may have written nothing
         if digest is not None and succeeded:
-            crs = _crs(out_path)
-            out_checks.append(
-                rec.check(
-                    "crs_present",
-                    crs is not None,
-                    f"output declares {crs}" if crs else "output declares no CRS",
+            if _has_crs_slot(out_path):
+                crs = _crs(out_path)
+                out_checks.append(
+                    rec.check(
+                        "crs_present",
+                        crs is not None,
+                        f"output declares {crs}" if crs else "output declares no CRS",
+                    )
                 )
-            )
             n = _count(out_path)
             if n is not None:
                 out_checks.append(
@@ -309,6 +324,8 @@ def run(tool: str, *args, **kwargs):
             target = rec.sidecar_path(digest)
         manifests.append(rec.write(record, target))
 
+    if raised is not None:
+        raise raised
     if error is not None:
         raise arcpy.ExecuteError(error)
     return result, manifests

@@ -1,8 +1,9 @@
 # Provenance manifest emitter for ArcGIS Pro
 
 A reference emitter: it runs an ArcGIS Pro geoprocessing tool through ArcPy and writes a
-manifest conforming to this specification beside each output. It imports nothing from any other
-producer, and what it writes passes the same validator as every other record.
+manifest conforming to [the specification in this repository](../../spec/manifest-v1.md) beside
+each output. It imports nothing from any other producer, and what it writes passes the same
+[validator](../../validator/validate.py) as every other record.
 
 *Not affiliated with, sponsored or endorsed by Esri. ArcGIS, ArcGIS Pro and ArcPy are trademarks
 of Esri.*
@@ -32,12 +33,13 @@ name. It returns the ArcPy `Result` and the paths of the manifests it wrote.
 - **Inputs, hashed before the tool runs**, so the digest describes what was read, not what was on
   disk afterwards. **Outputs, hashed after.**
 - **The parameters the tool ran with**, not the ones passed: `Result.getInput` returns the
-  defaults filled in (`method: PLANAR`, `dissolve_option: NONE`), which is what section 3.2 asks
-  for. Paths are written with `/`.
+  defaults filled in (`method: PLANAR`, `dissolve_option: NONE`), which is what
+  [section 3.2](../../spec/manifest-v1.md#32-mandatory-fields) asks for. Paths are written with `/`.
 - `engine`: ArcGIS Pro, its version and build, and the licence level.
-- `environment` (section 3.8): the geoprocessing environments in effect.
+- `environment` ([section 3.8](../../spec/manifest-v1.md#38-environment-the-configuration-that-changed-the-answer)):
+  the geoprocessing environments in effect.
 - The tool's messages.
-- Checks. From the core vocabulary: `input_crs_present`, `inputs_share_crs`, `crs_present`,
+- Checks. From the [core vocabulary](../../spec/manifest-v1.md#36-check-names-a-closed-core-and-prefixed-extensions): `input_crs_present`, `inputs_share_crs`, `crs_present`,
   `result_not_empty`. Extensions: `x-provenance-manifest-arcgis-pro:tool_succeeded`,
   `...:inputs_hashed` (an input that is not a dataset on disk, or does not exist, is named instead
   of being given a digest), and `...:linear_unit_declared` — ArcGIS accepts a distance with no
@@ -45,7 +47,12 @@ name. It returns the ArcPy `Result` and the paths of the manifests it wrote.
   call never stated.
 
 A tool that fails still gets a manifest, and the error is raised afterwards: the audit trail has
-to survive the error it documents.
+to survive the error it documents. That holds for any exception the call raises, not only a
+geoprocessing error.
+
+Paths are recorded as given, as section 3.3 requires. A dataset under your user folder puts your
+user name in the record: keep shared data somewhere that does not, or know that it travels with
+the manifest.
 
 ArcGIS Pro already keeps a geoprocessing history — tool, parameters, times, messages. What this
 adds is what that history does not hold: the digest of the bytes read and written, and the checks,
@@ -53,8 +60,10 @@ in a format a consumer can read without ArcGIS.
 
 ## Two things this emitter decides that the specification does not yet
 
-**The digest of a dataset made of several files.** Section 3.3 says `sha256` is of the bytes,
-which is undefined for a file geodatabase (a directory: sixty files for one layer) or a shapefile
+**The digest of a dataset made of several files.**
+[Section 3.3](../../spec/manifest-v1.md#33-field-semantics-that-are-easy-to-get-wrong) says
+`sha256` is of the bytes, which is undefined for a file geodatabase (a directory of dozens of
+files, even for one layer) or a shapefile
 (`.shp` + `.dbf` + `.prj` + …). Here both are digested as the SHA-256 of a sorted listing, one
 line per member file, `<relative-path>\0<sha256>\n`, with `/` as the separator, and the entry says
 so in `x-provenance-manifest-arcgis-pro:digest_rule`. Lock files (`*.lock`) are excluded and never

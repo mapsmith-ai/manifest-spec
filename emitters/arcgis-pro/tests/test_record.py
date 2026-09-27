@@ -11,10 +11,11 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(HERE.parents[2] / "validator"))
 
+# Imported, not importorskip: if the validator moved, these tests must fail,
+# not quietly skip -- a guard that cannot fail is no guard.
+import validate  # noqa: E402
 from provenance_manifest_arcgis_pro import record as rec  # noqa: E402
 from provenance_manifest_arcgis_pro.digest import DatasetDigest  # noqa: E402
-
-validate = pytest.importorskip("validate")
 
 
 def _record(**over):

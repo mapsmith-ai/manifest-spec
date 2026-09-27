@@ -87,7 +87,7 @@ so it drops into a pipeline as a gate without anything else being installed.
 There is nothing to `pip install`, and that is deliberate: a format whose point
 is that checking it needs no toolchain cannot ship as a package that needs one.
 
-Produce one, if you have not got one yet. The reference emitter is also a single
+Produce one, if you have not got one yet. The minimal emitter is also a single
 stdlib file, and it imports nothing from any product:
 
 ```bash
@@ -124,7 +124,8 @@ pip install jsonschema pytest && pytest -q  # the full conformance suite
 Extracted from [MapSmith](https://mapsmith.dev), which emits a manifest beside every dataset it
 writes and is one implementation of this specification, not its definition. The format is
 useful exactly in proportion to how many producers that are not MapSmith emit it — hence the
-hundred-line emitter, the toolchain-free validator, and the permissive licences.
+hundred-line emitter, the per-engine emitters in [`emitters/`](emitters/), the toolchain-free
+validator, and the permissive licences.
 
 MapSmith is also, as of 2026-09-21, the first **consumer** of §6: its `get_lineage` walks a
 chain of records by content digest. That is worth naming here and not in the specification,
@@ -139,4 +140,7 @@ no claim. The first walker written against this text got it wrong, and now the t
 ## Licences
 
 The specification text: **CC-BY-4.0** ([LICENSE-SPEC](LICENSE-SPEC)). Schema, validator,
-conformance fixtures, examples: **Apache-2.0** ([LICENSE-CODE](LICENSE-CODE)).
+conformance fixtures, examples, emitters: **Apache-2.0** ([LICENSE-CODE](LICENSE-CODE)).
+
+ArcGIS, ArcGIS Pro and ArcPy are trademarks of Esri; QGIS is a trademark of QGIS.ORG. This
+project is not affiliated with, sponsored or endorsed by Esri or the QGIS project.

@@ -87,6 +87,22 @@ inspect(
     },
 )
 
+# A table has no CRS to declare: crs_present must not be recorded, and the row
+# count still must.
+_, ms = run(
+    "analysis.Statistics",
+    utm,
+    os.path.join(dst, "stats"),
+    [["OBJECTID", "COUNT"]],
+)
+inspect(
+    "table_output",
+    ms,
+    {"x-provenance-manifest-arcgis-pro:tool_succeeded": True, "result_not_empty": True},
+)
+if "crs_present" in summary.get("table_output", {}).get("checks", {}):
+    failures.append("table_output: crs_present recorded for a table, which has no CRS")
+
 try:
     run(
         "analysis.Buffer",
