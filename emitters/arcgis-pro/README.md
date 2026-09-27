@@ -28,6 +28,10 @@ result, manifests = run(
 `run` takes the tool as `"<toolbox alias>.<Tool>"` and the tool's own arguments, positional or by
 name. It returns the ArcPy `Result` and the paths of the manifests it wrote.
 
+**For tools run interactively** — from the Geoprocessing pane or the Python window — the
+[add-in](addin/README.md) records them as they run, through the same package
+(`provenance_manifest_arcgis_pro.capture`).
+
 ## What goes in the record
 
 - **Inputs, hashed before the tool runs**, so the digest describes what was read, not what was on

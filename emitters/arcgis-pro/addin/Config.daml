@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArcGIS defaultAssembly="ProvenanceManifest.dll" defaultNamespace="ProvenanceManifest"
+        xmlns="http://schemas.esri.com/DADF/Registry"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
+  <AddInInfo id="{e112c006-a107-43ff-9015-4c2ee5397807}" version="0.1" desktopVersion="3.7">
+    <Name>Provenance Manifest</Name>
+    <Description>Writes a provenance manifest (geospatial provenance manifest specification) beside every dataset a geoprocessing tool writes: input digests, parameters, engine, checks. Not affiliated with Esri.</Description>
+    <Author>MapSmith</Author>
+    <Company>MapSmith</Company>
+    <Date>9/27/2026</Date>
+    <Subject>Geoprocessing</Subject>
+  </AddInInfo>
+  <modules>
+    <insertModule id="ProvenanceManifest_Module" className="Module1" autoLoad="true" caption="Provenance Manifest">
+    </insertModule>
+  </modules>
+</ArcGIS>

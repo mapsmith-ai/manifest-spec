@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Builds against the ArcGIS Pro installed on this machine (the references
+       and the packaging targets below): `dotnet build -c Release` produces
+       ProvenanceManifest.esriAddinX and registers it with Pro. -->
+  <!-- Provenance manifest emitter for ArcGIS Pro: for every geoprocessing run it
+       sees, it captures the parameters, hashes the inputs at tool start through
+       the Python package of the reference emitter (embedded here and extracted at
+       startup, so the digest rule has one implementation), and writes a manifest
+       beside each output when the tool finishes. With /provenance-manifest-autotest
+       it runs a fixed tool sequence on the project given and exits. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <NoWarn>CA1416</NoWarn>
+    <RootNamespace>ProvenanceManifest</RootNamespace>
+    <AssemblyName>ProvenanceManifest</AssemblyName>
+    <Nullable>disable</Nullable>
+    <EmitterPackage>..\provenance_manifest_arcgis_pro</EmitterPackage>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Config.daml" />
+    <EmbeddedResource Include="$(EmitterPackage)\*.py" LogicalName="python/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ArcGIS.Desktop.Framework"><HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Framework.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="ArcGIS.Core"><HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="ArcGIS.Desktop.Core"><HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Core\ArcGIS.Desktop.Core.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="ArcGIS.Desktop.Catalog"><HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Catalog\ArcGIS.Desktop.Catalog.dll</HintPath><Private>False</Private></Reference>
+    <Reference Include="ArcGIS.Desktop.Mapping"><HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Mapping\ArcGIS.Desktop.Mapping.dll</HintPath><Private>False</Private></Reference>
+  </ItemGroup>
+  <Import Project="C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets" Condition="Exists('C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets')" />
+</Project>
