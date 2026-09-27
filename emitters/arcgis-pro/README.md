@@ -31,7 +31,8 @@ name. It returns the ArcPy `Result` and the paths of the manifests it wrote.
 **For tools run interactively** — from the Geoprocessing pane or the Python window — the
 [add-in](addin/README.md) records them as they run, through the same package
 (`provenance_manifest_arcgis_pro.capture`). It is source only, does nothing until you enable it,
-and its README lists what it does not record yet.
+and is tested end to end so far on tools run from code, not yet on runs from the pane or the
+Python window; its README lists what it does not record yet.
 
 ## What goes in the record
 
@@ -82,7 +83,7 @@ cannot be read and carry the host name in theirs, which is why the rule excludes
 ## Tests
 
 `pytest emitters/arcgis-pro/tests` runs without ArcGIS: the digest rules, with answers computed
-from `hashlib`, and the record shape against the validator. The end-to-end check needs ArcGIS Pro
+from `hashlib`, the record shape against the validator, and the add-in's capture step. The end-to-end check needs ArcGIS Pro
 and is run by hand with its Python — three runs (an ordinary buffer, a buffer on data with no CRS
 and a distance with no unit, a tool that fails), every manifest validated:
 

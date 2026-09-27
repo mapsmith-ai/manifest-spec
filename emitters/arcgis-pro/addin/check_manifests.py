@@ -4,7 +4,10 @@ Expected, from the sequence in Autotest.cs: a manifest beside the container for
 at_fishnet, at_buffer, at_buffer_from_layer and at_copy; each valid under the
 specification's validator; inputs hashed at start for the three runs that went
 to the history, after the run for CopyFeatures (run without it); the buffer from
-a layer name resolved to the dataset behind the layer.
+a layer name resolved to the dataset behind the layer. Then: the in-place edits
+on at_edit with the two earlier records kept; both inputs of Merge; the buffer
+of a selection recorded with its layer filter and a failed input_read_whole;
+the record of at_fishnet untouched by the view-only tools; no error in the log.
 """
 
 import json
@@ -73,13 +76,14 @@ else:
     print(f"at_edit: live {record.get('operation')} | kept {kept_ops} | "
           f"{record.get(prefix + 'input_digests_taken', '')[:70]}")
 
-# Merge: both inputs of its one multi-value parameter are recorded.
+# The buffer from a layer name really received the name.
 from_layer_path = project / f"{gdb}.at_buffer_from_layer.provenance.json"
 from_layer = json.loads(from_layer_path.read_text(encoding="utf-8"))
 if from_layer.get("parameters", {}).get("in_features") != "fishnet_view":
     failures.append("at_buffer_from_layer: the tool did not receive the layer name, so the "
                     f"add-in's layer resolution was not exercised: {from_layer.get('parameters')}")
 
+# Merge: both inputs of its one multi-value parameter are recorded.
 merge = project / f"{gdb}.at_merge.provenance.json"
 if not merge.exists():
     failures.append("at_merge: no manifest")

@@ -11,8 +11,8 @@ has one implementation.
 *Not affiliated with, sponsored or endorsed by Esri. ArcGIS, ArcGIS Pro and ArcPy are trademarks
 of Esri.*
 
-**Status: early.** Tested end to end on ArcGIS Pro 3.7.1 and 3.7.2 by its autotest (below), which
-runs tools from code, the way another add-in does. That the same event fires for the
+**Status: early.** Tested end to end by its autotest (below) on ArcGIS Pro 3.7.2, and in an
+earlier, shorter sequence on 3.7.1; the autotest runs tools from code, the way another add-in does. That the same event fires for the
 Geoprocessing pane and the Python window is measured; a manifest written from each of them has not
 yet been checked end to end. Source only: build it with your own ArcGIS Pro.
 
@@ -45,10 +45,12 @@ and a log are in `%LOCALAPPDATA%\ProvenanceManifest`.
 
 The checks are fewer than [`run`](../README.md#what-goes-in-the-record) writes:
 `x-provenance-manifest-arcgis-pro:tool_succeeded`, `input_crs_present`, `crs_present`,
-`result_not_empty`, and `...:inputs_hashed` when an input could not be given a digest. Not yet
+`result_not_empty`, `...:inputs_hashed` when an input could not be given a digest, and
+`...:input_read_whole` when an input layer had a selection or a definition query (below). Not yet
 `inputs_share_crs` or `...:linear_unit_declared`.
 
-Measured on ArcGIS Pro 3.7, and stated in the record rather than hidden:
+The cases that are not a plain tool run. The ArcGIS behaviour behind each was measured on ArcGIS
+Pro 3.7; where a case limits what a record proves, the record says so:
 
 - **Input digests are taken at tool start, concurrently with the tool.** The event the add-in
   listens to does not block the tool. Exact for a tool that only reads its inputs.
@@ -61,18 +63,20 @@ Measured on ArcGIS Pro 3.7, and stated in the record rather than hidden:
   history) has its inputs hashed after the run, and the record says so.
 - **A layer name** (the Python window passes names, not paths) is resolved to the dataset behind the
   layer before hashing, in the active map first and then in the project's other maps.
-- **A layer with a selection or a definition query** is recorded as such: the tool read a subset,
+- **A feature layer with a selection or a definition query** is recorded as such: the tool read a subset,
   while the input digest covers the whole dataset behind the layer, so a re-run on that dataset can
   give a different answer. The record carries `x-provenance-manifest-arcgis-pro:layer_filters`
   (layer, selection count, definition query) and a failed, non-critical check
   `x-provenance-manifest-arcgis-pro:input_read_whole`. The selected IDs themselves are not recorded.
 - **A parameter holding several datasets** (the inputs of Merge) is split, and each dataset gets its
-  own digest. A name that leads to no file (a service layer, a name no map holds) gets no digest
-  and is named in `...:inputs_hashed`.
-- **Tools that change a layer and write no dataset** (Select Layer By Attribute or By Location,
-  Make Feature Layer and the other Make ... Layer tools, Apply Symbology From Layer, Get Count)
-  write no record: their output is the layer they were given, and read as a writer they would
-  claim an in-place edit of the dataset behind it.
+  own digest. A name that leads to no file (a service layer, a name no map holds) gets no digest and is named in `...:inputs_hashed`. The autotest runs Merge; the
+  unresolved name is covered by unit tests only.
+- **Tools that change a layer and write no dataset** (Select Layer By Attribute and By Location,
+  Make Feature Layer, Make Raster Layer, Make Query Layer, Make Table View, Apply Symbology From
+  Layer, Get Count) write no record: their output is the layer they were given, and read as a
+  writer they would claim an in-place edit of the dataset behind it. They are matched by name, so
+  a tool not in that list is read as a writer. The autotest runs two of them (Make Feature Layer,
+  Select Layer By Attribute).
 - **Not covered yet: models run from ModelBuilder.** No geoprocessing event fires for them. A model
   run as a tool from code raises one event for the model and none for the tools inside it.
 

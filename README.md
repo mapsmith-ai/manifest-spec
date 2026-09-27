@@ -57,7 +57,7 @@ sentence nobody can keep true, so this one says only what does not move.
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 | [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
 | [`examples/multi_file_digest.py`](examples/multi_file_digest.py) | The digest of a shapefile or a file geodatabase as §3.3 defines it since draft.9 — what a producer copies and a consumer recomputes |
-| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) that does the same for tools run inside ArcGIS Pro. One emitter per engine, each separate from the others; QGIS Processing is next |
+| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) that does the same for tools run inside ArcGIS Pro — tested end to end so far on tools run from code. One emitter per engine, each separate from the others; QGIS Processing is next |
 
 The schema and the validator are **two separate implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and

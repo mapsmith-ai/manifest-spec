@@ -36,5 +36,5 @@ abstract: >-
   the specification says so. Ships with a JSON Schema, a standalone
   stdlib-only validator, a conformance suite of records that must be accepted
   and records that must be rejected, a conforming producer in under a
-  hundred lines that imports nothing from MapSmith, and reference emitters for
-  individual GIS engines.
+  hundred lines that imports nothing from MapSmith, and, so far, a reference
+  emitter for one GIS engine.
