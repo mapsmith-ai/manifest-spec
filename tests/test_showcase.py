@@ -31,14 +31,35 @@ HEADING = re.compile(r"^#{1,6}\s+(.*?)\s*#*\s*$")
 FENCE = re.compile(r"^\s*(```|~~~)")
 
 
+def tracked_files() -> list[str]:
+    """The repository's files, relative and with `/`.
+
+    `git ls-files` in a checkout. Outside one -- the GitHub tarball the README
+    tells readers to run the suite from -- the tree itself, minus caches and
+    dot-directories: that is the file set `git archive` produced. This suite
+    failed exactly there on 2026-09-26, and this file repeated it the next day.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
+        ).stdout
+        return [line for line in out.splitlines() if line.strip()]
+    except (OSError, subprocess.CalledProcessError):
+        files = []
+        for path in ROOT.rglob("*"):
+            rel = path.relative_to(ROOT)
+            if path.is_file() and not any(
+                part.startswith(".") or part == "__pycache__" for part in rel.parts
+            ):
+                files.append(rel.as_posix())
+        return files
+
+
 def tracked_markdown() -> list[Path]:
-    out = subprocess.run(
-        ["git", "ls-files", "*.md"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout
-    files = [ROOT / line for line in out.splitlines() if line.strip()]
+    files = [ROOT / rel for rel in tracked_files() if rel.endswith(".md")]
     # Deriving the list is only worth something if the derivation cannot come
     # back empty: an empty list makes every test below pass.
-    assert README in files, "git ls-files did not list README.md: the derivation is broken"
+    assert README in files, "the file listing did not include README.md: the derivation is broken"
     return files
 
 
@@ -131,10 +152,7 @@ NOT_UNDER_THE_CODE_LICENCE_SENTENCE = {"spec", "tests"}
 
 def code_directories() -> list[str]:
     """Top-level directories holding tracked files, minus the two exempt ones."""
-    out = subprocess.run(
-        ["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True
-    ).stdout
-    dirs = {line.split("/", 1)[0] for line in out.splitlines() if "/" in line}
+    dirs = {rel.split("/", 1)[0] for rel in tracked_files() if "/" in rel}
     dirs = {d for d in dirs if not d.startswith(".")}
     assert "validator" in dirs, "the derivation of top-level directories is broken"
     return sorted(dirs - NOT_UNDER_THE_CODE_LICENCE_SENTENCE)
