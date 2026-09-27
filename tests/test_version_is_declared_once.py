@@ -43,6 +43,11 @@ def current_version() -> str:
 DECLARATIONS = [
     ("CITATION.cff", r'^version:\s*"([^"]+)"', "the citation metadata"),
     ("examples/emitter_minimal.py", r'^SPEC_VERSION\s*=\s*"([^"]+)"', "the reference producer"),
+    (
+        "emitters/arcgis-pro/provenance_manifest_arcgis_pro/record.py",
+        r'^SPEC_VERSION\s*=\s*"([^"]+)"',
+        "the ArcGIS Pro emitter",
+    ),
     ("README.md", r'"spec_version":\s*"([^"]+)"', "the example record on the front page"),
     ("README.md", r"\*\*Status: draft\*\*\s*\(`([^`]+)`\)", "the status line"),
     (".zenodo.json", r'"version":\s*"([^"]+)"', "the archive metadata"),

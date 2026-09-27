@@ -56,6 +56,7 @@ sentence nobody can keep true, so this one says only what does not move.
 | [`conformance/`](conformance/) | Records that MUST validate and records that MUST be rejected, each with its expected reason |
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 | [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
+| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output. One emitter per engine, each independent of the others; QGIS Processing is next |
 
 The schema and the validator are **independent implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and

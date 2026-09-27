@@ -10,4 +10,4 @@ target-version = "py39"
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "emitters"]
