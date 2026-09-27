@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .digest import DatasetDigest
 
-SPEC_VERSION = "1.0.0-draft.8"
+SPEC_VERSION = "1.0.0-draft.9"
 PRODUCER = "provenance-manifest-arcgis-pro"
 PRODUCER_VERSION = "0.0.1"
 # Every key the specification does not define carries this prefix (spec 3.5,
@@ -30,12 +30,9 @@ def dataset_entry(d: DatasetDigest) -> dict:
     entry: dict = {"path": d.path, "sha256": d.sha256}
     if d.layer is not None:
         entry["layer"] = d.layer
-    if d.kind != "file":
-        # A consumer recomputing the digest must know it is not the SHA-256 of
-        # one file. Not a spec field yet: until the specification defines the
-        # digest of a multi-file dataset, the rule is ours and says so.
-        entry[f"{PREFIX}:digest_rule"] = f"{d.kind}-listing-v1"
-        entry[f"{PREFIX}:member_files"] = d.members
+    # A shapefile or a directory container is digested by the listing rule of
+    # section 3.3 (draft.9); which rule applies follows from the path and the
+    # declared version, so the entry needs no field saying so.
     return entry
 
 

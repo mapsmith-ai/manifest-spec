@@ -14,6 +14,7 @@
   "missing-parameters.json": "parameters",
   "missing-spec-version.json": "spec_version",
   "output-backslash-path.json": "backslash",
+  "output-layer-not-a-string.json": "output.layer",
   "output-short-sha256.json": "64",
   "producer-not-an-object.json": "`producer` has the wrong type",
   "repair-key-without-prefix.json": "`repairs[0].round` is neither a key section 3.4 defines",

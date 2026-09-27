@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.8",
+  "spec_version": "1.0.0-draft.9",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,7 +21,7 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.8`). Field names may still change; anything that does is visible
+**Status: draft** (`1.0.0-draft.9`). Field names may still change; anything that does is visible
 in this repository's history.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
@@ -56,9 +56,10 @@ sentence nobody can keep true, so this one says only what does not move.
 | [`conformance/`](conformance/) | Records that MUST validate and records that MUST be rejected, each with its expected reason |
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 | [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
-| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output. One emitter per engine, each independent of the others; QGIS Processing is next |
+| [`examples/multi_file_digest.py`](examples/multi_file_digest.py) | The digest of a shapefile or a file geodatabase as §3.3 defines it since draft.9 — what a producer copies and a consumer recomputes |
+| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output. One emitter per engine, each separate from the others; QGIS Processing is next |
 
-The schema and the validator are **independent implementations**, kept in agreement by a
+The schema and the validator are **two separate implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and
 requires **both** to reject it. A record one accepts and the other rejects is a bug in one of
 them, and the suite says which one is the lenient one. A validator that disagrees with `conformance/` is wrong, whoever wrote it —

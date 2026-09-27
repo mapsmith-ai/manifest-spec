@@ -1,6 +1,6 @@
 """Standalone validator for provenance manifests (spec v1). Stdlib only.
 
-This is a second, independent implementation of the contract: the JSON Schema
+This is a second, separate implementation of the contract: the JSON Schema
 in ``schema/`` is the normative one, and this file re-states it in plain Python
 so that checking a manifest needs no toolchain at all. The two are kept in
 agreement by the conformance suite — a fixture that one accepts and the other
@@ -242,6 +242,10 @@ def problems(record: object) -> list[str]:
             crs = out_field.get("crs")
             if crs is not None and not isinstance(crs, str):
                 out.append("`output.crs` must be a string or null")
+            # New in 1.0.0-draft.9: the layer a container record describes.
+            layer = out_field.get("layer")
+            if layer is not None and not isinstance(layer, str):
+                out.append("`output.layer` must be a string or null")
 
     # The RECOMMENDED fields of section 3.4. Optional to emit, typed once
     # emitted: a consumer that finds `notes` holding a bare string instead of a

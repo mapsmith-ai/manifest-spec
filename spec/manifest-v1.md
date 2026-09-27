@@ -1,8 +1,12 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.8
+# Provenance manifests for geospatial datasets — v1.0.0-draft.9
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
-implementation emits conforming records.
+implementation emits conforming records — **independent meaning written by people other than the
+authors of this specification and of MapSmith.** A second emitter from the same hands, however
+separate its code, does not count: separating repositories makes a measurement credible, it does
+not make a piece of work independent. (Stated in `1.0.0-draft.9`; the condition was always meant
+this way, and a condition for leaving draft should not depend on a reading.)
 
 ## 1. What this is
 
@@ -42,6 +46,13 @@ A manifest describes exactly one output dataset. Producers SHOULD write it besid
 `<output-filename>.provenance.json`. A manifest MUST be written even when verification fails:
 the audit trail has to survive the error it documents.
 
+**A dataset that lives inside a directory container** — a layer of a file geodatabase — cannot
+have its manifest inside the container: writing it there changes the bytes the container's digest
+covers (§3.3). Producers SHOULD write it beside the container instead, as
+`<container-name>.<layer>.provenance.json`, with any `/` in the layer name replaced by `.`: a
+layer `transport/roads` of `out.gdb` gets `out.gdb.transport.roads.provenance.json`. (Since
+`1.0.0-draft.9`.)
+
 ### 3.2 Mandatory fields
 
 | field | what it records |
@@ -69,6 +80,63 @@ multiple layers, the checksum necessarily covers the whole container; the RECOMM
 `inputs[].layer` field records which layer was actually read, because without it an auditor
 holding a five-layer container cannot tell which layer produced the numbers.
 
+**A dataset made of several files is digested as the listing of its files.** "The bytes" is
+unambiguous for one file and undefined for the two shapes desktop GIS writes most: a **shapefile**
+is a set of sibling files, and hashing the `.shp` alone leaves the attributes (`.dbf`) and the
+coordinate reference system (`.prj`) outside the digest — a record would match after either had
+been edited; a **file geodatabase** is a directory, whose layers live in dozens of files named
+after nothing a reader would recognise. For both, since `1.0.0-draft.9`, `sha256` is the SHA-256
+of this UTF-8 text:
+
+```
+<name>\0<sha256-of-that-file>\n      one line per member, sorted by name
+```
+
+where `\0` is a NUL byte; `\n` is a line feed, and ends every line including the last;
+`<sha256-of-that-file>` is the SHA-256 of the member's bytes as 64 lowercase hex characters; and
+lines are sorted by the bytes of `<name>`'s UTF-8 encoding. A container holding no member file
+digests as the SHA-256 of the empty text. The members, and the name each is listed under, are:
+
+- for a **shapefile** `<stem>.shp`: the files named `<stem>` followed by `.shp`, `.shx`, `.dbf`,
+  `.prj` or `.cpg` that exist, stem and extension matched case-insensitively, each listed under
+  its **extension alone, lowercased** (`.cpg`, `.dbf`, `.prj`, `.shp`, `.shx`) — not under its file
+  name. Renaming a shapefile changes no byte of it, so it must not change its digest either:
+  section 6 walks lineage by content precisely so that a copy under another name still resolves.
+  If more than one file matches the same member (`roads.dbf` and `roads.DBF` side by side, which a
+  case-sensitive filesystem allows), the producer MUST NOT record a digest: choosing one would make
+  the digest depend on the order the filesystem lists them in. Spatial indexes (`.sbn`, `.sbx`,
+  `.qix`, …) and metadata (`.shp.xml`) are **not** members: they are derived or descriptive, and a
+  digest that changed when an index was rebuilt would report an edit that never touched the data.
+- for a **directory container** (a directory whose name ends in `.gdb`, matched
+  case-insensitively): every regular file under the directory, recursively, listed under its path
+  relative to the container with `/` as the only separator — **except** lock files (names ending
+  in `.lock`, case-insensitive), which MUST NOT be opened; files whose name begins with `.`; and
+  `Thumbs.db` and `desktop.ini` (case-insensitive). A file geodatabase creates lock files only
+  while the data is open, they cannot be read while they exist, and their names carry a host name
+  and a process id: including them would make the digest depend on who has the data open, and
+  would put a machine's name in the record. The other exclusions are what operating systems drop
+  into any folder they display; no geodatabase file is named that way. Symbolic links are neither
+  members nor followed. The container is the unit, as for single-file containers above: `path`
+  names the container, not the container joined with the layer, and `layer` names the dataset
+  inside it.
+
+Which rule applies follows from the path and the version: a path ending in `.shp`, or a
+directory ending in `.gdb`, in a record declaring `draft.9` or later — later by SemVer
+precedence, under which `1.0.0-draft.10` follows `draft.9` and every release follows every draft.
+A consumer recomputing a digest applies the same rule;
+[`examples/multi_file_digest.py`](../examples/multi_file_digest.py) is the reference, in the
+standard library. Records declaring an earlier draft may carry the digest of the `.shp` file
+alone, which is what producers did before this rule existed, or a rule the producer names in an
+extension key.
+
+**What the rule does not cover, said here so nobody reads it into the silence.** Other formats
+that are directories — a Zarr store, an ArcInfo grid — have no rule in this draft; a producer
+recording one names the rule it applied in an extension key rather than presenting it as this
+one. And the sidecars of a single-file raster (`.aux.xml`, `.tfw`, `.ovr`) are not part of its
+digest: section 3.8 shows one changing an area by a factor of four, and that fact belongs in the
+record as section 3.8 and section 3.7 describe it, where a reader can see which georeferencing
+was used — folded into a digest, it would only say that *something* differs.
+
 **Timestamps are UTC and end in `Z`.** Local times make two manifests disagree about the order
 of events depending on where they are read.
 
@@ -91,6 +159,13 @@ CRS decisions, and until `draft.4` there was nowhere here to put it: producers p
 one, and therefore false on every path that fails between the decision and the write. A producer
 that cannot compute it — because the write has not happened — SHOULD omit it rather than predict
 it.
+
+**`output.layer`** — the dataset inside a container that this record describes, since
+`1.0.0-draft.9`, the counterpart of `inputs[].layer`. When the output is a layer of a container,
+`output.sha256` covers the whole container (§3.3) and says nothing about which layer this record
+is for; without this field, two records for two layers of one container would describe the same
+digest and nothing would tell them apart. A producer writing a layer into a container SHOULD
+record it.
 
 **Optional fields of the mandatory objects.** The schema has carried these since `1.0.0-draft.3`,
 and until this paragraph was added — after `draft.6` was tagged — the prose did not describe
@@ -341,6 +416,11 @@ or carries an `x-<producer>:` prefix, and so, since `1.0.0-draft.7`, does every 
 **A conforming producer** emits a conforming record for every dataset it writes, including
 failed runs.
 
+**The validator does not recompute digests.** It checks that `sha256` is 64 lowercase hex
+characters; whether the value follows §3.3 — one file's bytes, or the listing of a shapefile's or
+a container's members — can only be checked by someone holding the data, with
+[`examples/multi_file_digest.py`](../examples/multi_file_digest.py).
+
 **The `conformance/` directory cannot prove that sentence, and says so.** It validates records;
 whether a producer leaves a dataset with no record beside it is a property of the producer, and
 the only way to see it is to run the producer and make it fail. Every record a producer emits can
@@ -421,7 +501,7 @@ unchanged label, wearing the other hat.
   reformatted or re-emitted, which is not a change to the lineage, and it would let a record
   assert its own ancestry rather than be found because it accounts for bytes that exist.
 
-  Three limits, stated because a reader will meet all three.
+  Four limits, stated because a reader will meet all four.
 
   **A found hop is not a successful hop.** Section 3.1 REQUIRES a manifest even when verification
   fails, so the records a walk meets include runs that did not finish. A run that crashed after
@@ -444,6 +524,16 @@ unchanged label, wearing the other hat.
   and not advice: `critical` is written by producers that care about the distinction and omitted
   by every producer that does not, so the records where it is missing are exactly the records
   written by the least careful producers.
+
+  **A container's digest identifies the container, not the layer** (since `1.0.0-draft.9`). When
+  two operations write two layers into one directory container, the second changes the bytes
+  the first record's digest covered: the first record stops matching although nobody touched its
+  layer, and a walk arriving at the container with the new digest finds the second record, which
+  describes the other layer. **A walker resolving a digest that belongs to a container MUST also
+  match the layer** — `inputs[].layer` of the hop it comes from against `output.layer` of the
+  record it finds — and MUST NOT present a record for another layer of the same container as the
+  producer of this one. A digest mismatch on a container record is not, by itself, evidence that
+  its layer was edited.
 
   **The chain reaches only as far as producers recorded `output`**, which is RECOMMENDED and not
   REQUIRED for the reason §3.4 gives: a manifest may be emitted before the output is durably on

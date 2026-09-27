@@ -310,6 +310,8 @@ def _maximal_record() -> dict:
         "path": "out/basins.tif",
         "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
         "crs": "EPSG:32632",
+        # Since draft.9: the layer a container record describes.
+        "layer": "basins",
     }
     # The layer of a multi-layer container, which the format declares and this
     # record did not carry: the mutation tests below skipped it in silence.

@@ -9,10 +9,12 @@ single-file format and undefined for the two shapes a desktop GIS writes most:
 * a **file geodatabase** is a directory. Its layers live in dozens of files
   whose names say nothing about which layer they hold.
 
-Both get the same rule here: the SHA-256 of a sorted listing, one line per
-member file, ``<relative-path>\\0<sha256-of-that-file>\\n``, with ``/`` as the
-separator. The digest changes when any member changes and does not depend on
-the order the filesystem lists them in.
+Both get the rule of section 3.3 of the specification (draft.9): the SHA-256
+of a sorted listing, one line per member, ``<name>\\0<sha256>\\n``. A
+shapefile member is named by its lowercased extension, so renaming the
+shapefile keeps its digest; a container member by its path relative to the
+container, with ``/``. The digest changes when any member changes and does
+not depend on the order the filesystem lists them in.
 
 Lock files (``*.lock``) are excluded, and never opened: a file geodatabase
 creates them only while it is open, they cannot be read while they exist, and
@@ -34,28 +36,11 @@ from pathlib import Path
 
 _CHUNK = 1 << 20
 
-# Every file that belongs to a shapefile named ``<stem>.shp`` shares its stem.
-# The list is the one the format and its common companions define; anything
-# else beside the .shp with the same stem (an unrelated ``roads.txt``) is not
-# part of the dataset and is not hashed.
-SHAPEFILE_MEMBERS = (
-    ".shp",
-    ".shx",
-    ".dbf",
-    ".prj",
-    ".cpg",
-    ".qix",
-    ".sbn",
-    ".sbx",
-    ".fbn",
-    ".fbx",
-    ".ain",
-    ".aih",
-    ".atx",
-    ".ixs",
-    ".mxs",
-    ".shp.xml",
-)
+# The data-defining files of a shapefile, as section 3.3 of the specification
+# lists them since draft.9. Spatial indexes and .shp.xml metadata are left out
+# on purpose: a digest that changed when an index was rebuilt would report an
+# edit that never touched the data.
+SHAPEFILE_MEMBERS = (".shp", ".shx", ".dbf", ".prj", ".cpg")
 
 CONTAINER_SUFFIXES = (".gdb",)
 
@@ -74,30 +59,47 @@ def listing_sha256(members: dict[str, str]) -> str:
     return hashlib.sha256(lines.encode("utf-8")).hexdigest()
 
 
-def _is_lock(name: str) -> bool:
-    return name.lower().endswith(".lock")
+# What an operating system drops into any folder it displays; no file
+# geodatabase file is named like this (spec section 3.3).
+NOT_MEMBERS = ("thumbs.db", "desktop.ini")
+
+
+def _excluded(name: str) -> bool:
+    lowered = name.lower()
+    return lowered.endswith(".lock") or name.startswith(".") or lowered in NOT_MEMBERS
 
 
 def directory_members(root: Path) -> dict[str, str]:
     members: dict[str, str] = {}
-    for dirpath, _dirs, files in os.walk(root):
+    for dirpath, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if not (Path(dirpath) / d).is_symlink()]
         for name in files:
-            if _is_lock(name):
-                continue
+            if _excluded(name):
+                continue  # a lock file is never opened
             path = Path(dirpath) / name
+            if path.is_symlink():
+                continue
             members[path.relative_to(root).as_posix()] = file_sha256(path)
     return members
 
 
 def shapefile_members(shp: Path) -> dict[str, str]:
-    members: dict[str, str] = {}
-    stem = shp.name[: -len(".shp")]
-    lowered = {p.name.lower(): p for p in shp.parent.iterdir() if p.is_file()}
-    for suffix in SHAPEFILE_MEMBERS:
-        path = lowered.get((stem + suffix).lower())
-        if path is not None:
-            members[path.name] = file_sha256(path)
-    return members
+    """Members named by their lowercased extension, so a renamed shapefile keeps its digest."""
+    stem = shp.name[: -len(".shp")].lower()
+    found: dict[str, Path] = {}
+    for candidate in shp.parent.iterdir():
+        if not candidate.is_file() or candidate.is_symlink():
+            continue
+        for ext in SHAPEFILE_MEMBERS:
+            if candidate.name.lower() == stem + ext:
+                if ext in found:
+                    raise ValueError(
+                        f"two files match the {ext} member of {shp.name}: "
+                        f"{found[ext].name} and {candidate.name}; the specification forbids "
+                        "choosing one"
+                    )
+                found[ext] = candidate
+    return {ext: file_sha256(path) for ext, path in found.items()}
 
 
 @dataclass(frozen=True)
@@ -105,8 +107,9 @@ class DatasetDigest:
     """What a manifest records about one dataset.
 
     ``path`` is the file or container that was hashed, ``layer`` the dataset
-    inside a container when there is one, and ``kind`` which rule produced the
-    digest -- a consumer recomputing it needs to know.
+    inside a container when there is one, and ``kind`` which rule of section
+    3.3 produced the digest. The record does not carry ``kind``: since draft.9 a
+    consumer derives the rule from the path and ``spec_version``.
     """
 
     path: str
@@ -149,7 +152,7 @@ def dataset_digest(path: str | os.PathLike) -> DatasetDigest:
     p = Path(path)
     if p.suffix.lower() == ".shp":
         members = shapefile_members(p)
-        if p.name not in members:
+        if ".shp" not in members:
             raise FileNotFoundError(f"no such shapefile: {p}")
         return DatasetDigest(
             path=p.as_posix(),

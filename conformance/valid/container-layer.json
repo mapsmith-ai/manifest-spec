@@ -1,0 +1,51 @@
+{
+  "spec_version": "1.0.0-draft.9",
+  "operation": "Buffer_analysis",
+  "parameters": {
+    "method": "d8",
+    "n_pour_points": 6
+  },
+  "inputs": [
+    {
+      "path": "data/src.gdb",
+      "sha256": "3f1c0a9d6b2e4f58a7c19d03e6b4a2f1c8d7e6b5a4f3e2d1c0b9a8f7e6d5c4b3",
+      "layer": "wells",
+      "crs": "EPSG:32633"
+    }
+  ],
+  "crs_decisions": {
+    "analysis_crs": "EPSG:32610",
+    "reason": "pour points and DEM share the same CRS"
+  },
+  "engine": {
+    "name": "whitebox-workflows",
+    "version": "2.0.6"
+  },
+  "verification": [
+    {
+      "name": "crs_present",
+      "passed": true,
+      "detail": "EPSG:32610",
+      "critical": true,
+      "hint": null,
+      "argument": null
+    },
+    {
+      "name": "values_in_expected_range",
+      "passed": true,
+      "detail": "valid cells in [1, 6], expected [1, 6]"
+    }
+  ],
+  "started_at": "2026-08-23T10:12:04Z",
+  "finished_at": "2026-08-23T10:12:09Z",
+  "producer": {
+    "name": "mapsmith",
+    "version": "0.2.2"
+  },
+  "output": {
+    "path": "data/dst.gdb",
+    "sha256": "9a8b7c6d5e4f30211a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7081",
+    "layer": "wells_500m",
+    "crs": "EPSG:32633"
+  }
+}

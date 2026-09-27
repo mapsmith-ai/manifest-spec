@@ -58,25 +58,21 @@ ArcGIS Pro already keeps a geoprocessing history — tool, parameters, times, me
 adds is what that history does not hold: the digest of the bytes read and written, and the checks,
 in a format a consumer can read without ArcGIS.
 
-## Two things this emitter decides that the specification does not yet
+## Datasets made of several files, and layers inside a container
 
-**The digest of a dataset made of several files.**
-[Section 3.3](../../spec/manifest-v1.md#33-field-semantics-that-are-easy-to-get-wrong) says
-`sha256` is of the bytes, which is undefined for a file geodatabase (a directory of dozens of
-files, even for one layer) or a shapefile
-(`.shp` + `.dbf` + `.prj` + …). Here both are digested as the SHA-256 of a sorted listing, one
-line per member file, `<relative-path>\0<sha256>\n`, with `/` as the separator, and the entry says
-so in `x-provenance-manifest-arcgis-pro:digest_rule`. Lock files (`*.lock`) are excluded and never
-opened: a file geodatabase creates them only while it is open, they cannot be read while they
-exist, and their names carry the host name and a process id. Measured on ArcGIS Pro 3.7.1: reading
-a geodatabase, with a cursor or as a tool input, changes none of its other bytes. A layer is named
-in `inputs[].layer`.
+A file geodatabase is a directory of dozens of files, even for one layer, and a shapefile is a set
+of sibling files. Since `draft.9`,
+[section 3.3](../../spec/manifest-v1.md#33-field-semantics-that-are-easy-to-get-wrong) digests
+both as the listing of their member files, and
+[section 3.1](../../spec/manifest-v1.md#31-placement-and-naming) puts the record of a layer beside
+its container, as `<container>.<layer>.provenance.json` (`out.gdb.wells_500m.provenance.json`) --
+inside, it would change the container's digest. This emitter implements both, and a test in the
+suite checks that its digests equal the reference function's
+([`examples/multi_file_digest.py`](../../examples/multi_file_digest.py)).
 
-**Where the record of a layer inside a container goes.** Not inside the container, which would
-change the container's digest: beside it, as `<container>.<layer>.provenance.json`
-(`out.gdb.wells_500m.provenance.json`).
-
-Both are proposals for a future draft, not rules of this one.
+Both rules came from building this emitter. Measured on ArcGIS Pro 3.7.1: reading a geodatabase,
+with a cursor or as a tool input, changes none of its other bytes; the lock files it creates while open
+cannot be read and carry the host name in theirs, which is why the rule excludes them.
 
 ## Tests
 
