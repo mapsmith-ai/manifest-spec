@@ -41,6 +41,25 @@ from .digest import DatasetDigest, dataset_digest
 
 CAPTURE_VERSION = 1
 
+# Tools that change a layer -- its selection, its definition, its symbology --
+# and write no dataset. Their output parameter is the layer they were given, so
+# without this list the add-in would read them as editing the dataset behind
+# the layer in place and write a record claiming so. Matched on the tool name
+# ArcGIS reports (`<toolbox alias>.<Tool>`), case-insensitively.
+VIEW_ONLY_TOOLS = frozenset(
+    name.lower()
+    for name in (
+        "management.SelectLayerByAttribute",
+        "management.SelectLayerByLocation",
+        "management.MakeFeatureLayer",
+        "management.MakeTableView",
+        "management.MakeRasterLayer",
+        "management.MakeQueryLayer",
+        "management.ApplySymbologyFromLayer",
+        "management.GetCount",
+    )
+)
+
 # When the input digests were taken, stated in the record because it decides
 # what they prove (see the module docstring).
 TIMING = {
@@ -66,18 +85,30 @@ def _as_dict(d: DatasetDigest) -> dict:
     return {"path": d.path, "sha256": d.sha256, "kind": d.kind, "layer": d.layer}
 
 
+def _paths(param: dict) -> list[str]:
+    """Every dataset path a parameter names: `paths` for a multi-value one."""
+    paths = [p for p in (param.get("paths") or []) if p]
+    if not paths and param.get("path"):
+        paths = [param["path"]]
+    return paths
+
+
 def start(path: Path) -> dict:
     """Digest the inputs the capture names. Standard library only."""
     capture = _load(path)
     inputs, unhashed = [], []
     for param in capture.get("parameters", []):
-        target = param.get("path")
-        if not param.get("is_input") or not target:
+        if not param.get("is_input"):
             continue
-        try:
-            inputs.append(_as_dict(dataset_digest(target)))
-        except (OSError, ValueError) as exc:
-            unhashed.append(f"{param.get('name')}={str(target).replace(chr(92), '/')} ({exc})")
+        for target in _paths(param):
+            try:
+                inputs.append(_as_dict(dataset_digest(target)))
+            except (OSError, ValueError) as exc:
+                unhashed.append(f"{param.get('name')}={str(target).replace(chr(92), '/')} ({exc})")
+        for value in param.get("unresolved") or []:
+            # Named a dataset and resolved to no file: a layer from a service, a
+            # name no map holds. Said, not dropped.
+            unhashed.append(f"{param.get('name')}={value} (not resolved to a dataset on disk)")
     capture["inputs"] = inputs
     capture["unhashed"] = unhashed
     capture["input_digests_taken_at"] = rec.utcnow()
@@ -99,11 +130,13 @@ def writes_to_input(capture: dict) -> set[str]:
     the record of the operation that created the dataset sat.
     """
     params = capture.get("parameters", [])
-    ins = {_norm(p["path"]) for p in params if p.get("is_input") and p.get("path")}
+    ins = {_norm(path) for p in params if p.get("is_input") for path in _paths(p)}
     return {
-        p["path"]
+        path
         for p in params
-        if not p.get("is_input") and p.get("path") and _norm(p["path"]) in ins
+        if not p.get("is_input")
+        for path in _paths(p)
+        if _norm(path) in ins
     }
 
 
@@ -138,9 +171,12 @@ def _tool_id(tool: str | None) -> str:
 
 def finish(path: Path) -> list[Path]:
     """Write the manifest beside each output. Imports ArcPy."""
+    capture = _load(path)
+    if str(capture.get("tool") or "").lower() in VIEW_ONLY_TOOLS:
+        return []  # no dataset written, so no record to write beside one
+
     from . import arcgis  # imports arcpy: only here, never in `start`
 
-    capture = _load(path)
     tool_id = _tool_id(capture.get("tool"))
     succeeded = bool(capture.get("succeeded"))
     inputs = [
@@ -148,7 +184,9 @@ def finish(path: Path) -> list[Path]:
         for i in capture.get("inputs", [])
     ]
     parameters = {
-        p["name"]: (arcgis._posix(p["value"]) if p.get("path") else p.get("value"))
+        p["name"]: (
+            arcgis._posix(p["value"]) if (p.get("dataset") or _paths(p)) else p.get("value")
+        )
         for p in capture.get("parameters", [])
     }
     checks = [
@@ -159,10 +197,35 @@ def finish(path: Path) -> list[Path]:
         )
     ]
     input_crs = {
-        p["path"]: arcgis._crs(p["path"])
+        path: arcgis._crs(path)
         for p in capture.get("parameters", [])
-        if p.get("is_input") and p.get("path") and arcgis._has_crs_slot(p["path"])
+        if p.get("is_input")
+        for path in _paths(p)
+        if arcgis._has_crs_slot(path)
     }
+    filters = [
+        dict(f, parameter=p.get("name"))
+        for p in capture.get("parameters", [])
+        if p.get("is_input")
+        for f in (p.get("layer_filters") or [])
+    ]
+    if filters:
+        checks.append({
+            "name": f"{rec.PREFIX}:input_read_whole",
+            "passed": False,
+            "critical": False,
+            "detail": "the tool read a subset of a layer, while the input digest covers the whole "
+            "dataset: " + "; ".join(
+                f"{f['layer']} ({f.get('selection_count') or 0} selected"
+                + (
+                    f", definition query {f['definition_query']!r}"
+                    if f.get("definition_query")
+                    else ""
+                )
+                + ")"
+                for f in filters
+            ),
+        })
     if input_crs:
         missing = [path for path, crs in input_crs.items() if crs is None]
         checks.append(
@@ -188,7 +251,7 @@ def finish(path: Path) -> list[Path]:
     in_place = {_norm(x) for x in writes_to_input(capture)}
     manifests = []
     outputs = [
-        p["path"] for p in capture.get("parameters", []) if not p.get("is_input") and p.get("path")
+        path for p in capture.get("parameters", []) if not p.get("is_input") for path in _paths(p)
     ]
     for out_path in outputs:
         out_checks = list(checks)
@@ -224,6 +287,8 @@ def finish(path: Path) -> list[Path]:
             messages=messages,
         )
         record[f"{rec.PREFIX}:launch"] = capture.get("launch")
+        if filters:
+            record[f"{rec.PREFIX}:layer_filters"] = filters
         record[f"{rec.PREFIX}:input_digests_taken"] = timing
         if digest is None:
             from .digest import split_container

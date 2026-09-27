@@ -73,6 +73,45 @@ else:
     print(f"at_edit: live {record.get('operation')} | kept {kept_ops} | "
           f"{record.get(prefix + 'input_digests_taken', '')[:70]}")
 
+# Merge: both inputs of its one multi-value parameter are recorded.
+from_layer_path = project / f"{gdb}.at_buffer_from_layer.provenance.json"
+from_layer = json.loads(from_layer_path.read_text(encoding="utf-8"))
+if from_layer.get("parameters", {}).get("in_features") != "fishnet_view":
+    failures.append("at_buffer_from_layer: the tool did not receive the layer name, so the "
+                    f"add-in's layer resolution was not exercised: {from_layer.get('parameters')}")
+
+merge = project / f"{gdb}.at_merge.provenance.json"
+if not merge.exists():
+    failures.append("at_merge: no manifest")
+else:
+    r = json.loads(merge.read_text(encoding="utf-8"))
+    layers = sorted(i.get("layer") for i in r.get("inputs", []))
+    if layers != ["at_buffer", "at_fishnet"]:
+        failures.append(f"at_merge: inputs {layers}")
+    print(f"at_merge: inputs {layers}")
+
+# A selection: the buffer read a subset; the selection tool wrote nothing.
+sel = project / f"{gdb}.at_buffer_selected.provenance.json"
+if not sel.exists():
+    failures.append("at_buffer_selected: no manifest")
+else:
+    r = json.loads(sel.read_text(encoding="utf-8"))
+    filters = r.get(prefix + "layer_filters") or []
+    checks = {c["name"]: c["passed"] for c in r["verification"]}
+    first = filters[0] if filters else {}
+    if first.get("selection_count") != 3 or first.get("layer") != "fishnet_view":
+        failures.append(f"at_buffer_selected: layer filters {filters}")
+    if checks.get(prefix + "input_read_whole") is not False:
+        failures.append("at_buffer_selected: input_read_whole not recorded as failed")
+    if validate.problems(r):
+        failures.append(f"at_buffer_selected: invalid {validate.problems(r)}")
+    print(f"at_buffer_selected: filters {filters}")
+fishnet = json.loads((project / f"{gdb}.at_fishnet.provenance.json").read_text(encoding="utf-8"))
+if fishnet.get("operation") != "CreateFishnet_management":
+    failures.append(f"at_fishnet: live record became {fishnet.get('operation')!r}")
+if list(project.glob(f"{gdb}.at_fishnet.*.provenance.json")):
+    failures.append("at_fishnet: a record was kept aside, so a view-only tool was read as an edit")
+
 log = Path(os.environ["LOCALAPPDATA"]) / "ProvenanceManifest" / "addin.log"
 if log.exists():
     for line in log.read_text(encoding="utf-8").splitlines():

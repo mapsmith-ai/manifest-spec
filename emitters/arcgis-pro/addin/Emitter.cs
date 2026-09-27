@@ -190,43 +190,77 @@ namespace ProvenanceManifest
             (r?.Parameters ?? Enumerable.Empty<Tuple<string, string, string, bool>>())
             .Select(p => (p.Item1, p.Item2, p.Item3, p.Item4)).ToList();
 
-        // Each parameter, and the dataset on disk it refers to when there is one: a
-        // path as given, or the source of the layer a name refers to (the Python
-        // window passes layer names).
+        // Each parameter, and the datasets on disk it refers to: every value of a
+        // multi-value parameter (Merge's inputs arrive as "a;b"), each a path as
+        // given or the source of the layer a name refers to (the Python window
+        // passes layer names). A value that names a dataset and resolves to no
+        // file is listed in `unresolved`, so the record can say so instead of
+        // dropping it. For a layer, its selection and definition query are kept:
+        // a tool reads only the selected features, while the digest covers the
+        // whole dataset.
         private static async Task<JsonArray> Resolve(List<(string name, string type, string value, bool isInput)> ps)
         {
             var arr = new JsonArray();
             foreach (var p in ps)
             {
-                string path = null;
-                var value = (p.value ?? "").Trim().Trim('\'', '"');
-                bool datasetType = p.type != null && (p.type.StartsWith("DE") || LayerTypes.Contains(p.type));
-                if (datasetType && value.Length > 0 && !value.Contains(';'))
+                bool datasetType = p.type != null && (p.type.StartsWith("DE") || LayerTypes.Contains(p.type)
+                    || p.type.StartsWith("GPMultiValue", StringComparison.OrdinalIgnoreCase));
+                var paths = new JsonArray();
+                var unresolved = new JsonArray();
+                var filters = new JsonArray();
+                if (datasetType)
                 {
-                    if (Path.IsPathRooted(value)) path = value;
-                    else if (LayerTypes.Contains(p.type)) path = await LayerSource(value);
+                    foreach (var raw in (p.value ?? "").Split(';'))
+                    {
+                        var value = raw.Trim().Trim('\'', '"');
+                        if (value.Length == 0) continue;
+                        if (Path.IsPathRooted(value)) { paths.Add(value); continue; }
+                        var source = await LayerSource(value);
+                        if (source.path != null)
+                        {
+                            paths.Add(source.path);
+                            if (source.selection > 0 || !string.IsNullOrEmpty(source.definitionQuery))
+                                filters.Add(new JsonObject
+                                {
+                                    ["layer"] = value, ["selection_count"] = source.selection,
+                                    ["definition_query"] = source.definitionQuery,
+                                });
+                        }
+                        else unresolved.Add(value);
+                    }
                 }
                 arr.Add(new JsonObject
                 {
-                    ["name"] = p.name, ["type"] = p.type, ["value"] = p.value,
-                    ["is_input"] = p.isInput, ["path"] = path,
+                    ["name"] = p.name, ["type"] = p.type, ["value"] = p.value, ["is_input"] = p.isInput,
+                    ["dataset"] = datasetType,
+                    ["path"] = paths.Count == 1 ? paths[0]?.GetValue<string>() : null,
+                    ["paths"] = paths, ["unresolved"] = unresolved, ["layer_filters"] = filters,
                 });
             }
             return arr;
         }
 
-        private static Task<string> LayerSource(string name) => QueuedTask.Run(() =>
+        private static Task<(string path, long selection, string definitionQuery)> LayerSource(string name) => QueuedTask.Run(() =>
         {
             var maps = new List<Map>();
             if (MapView.Active?.Map != null) maps.Add(MapView.Active.Map);
-            else if (Project.Current != null) maps.AddRange(Project.Current.GetItems<MapProjectItem>().Select(i => i.GetMap()));
+            if (Project.Current != null)
+                maps.AddRange(Project.Current.GetItems<MapProjectItem>().Select(i => i.GetMap()).Where(m => m != null && !maps.Contains(m)));
             foreach (var map in maps)
             {
                 var layer = map.FindLayers(name, true).FirstOrDefault();
                 var uri = layer?.GetPath();
-                if (uri != null && uri.IsFile) return uri.LocalPath;
+                if (uri == null || !uri.IsFile) continue;
+                long selection = 0;
+                string query = null;
+                if (layer is BasicFeatureLayer fl)
+                {
+                    selection = fl.SelectionCount;
+                    query = fl.DefinitionQuery;
+                }
+                return (uri.LocalPath, selection, query);
             }
-            return (string)null;
+            return ((string)null, 0L, (string)null);
         });
 
         // The pane gives no tool name: the most recent history entry whose output
