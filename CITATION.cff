@@ -35,5 +35,6 @@ abstract: >-
   records what was done; it does not certify that what was done was right, and
   the specification says so. Ships with a JSON Schema, a standalone
   stdlib-only validator, a conformance suite of records that must be accepted
-  and records that must be rejected, and a conforming producer in under a
-  hundred lines that imports nothing from MapSmith.
+  and records that must be rejected, a conforming producer in under a
+  hundred lines that imports nothing from MapSmith, and reference emitters for
+  individual GIS engines.

@@ -86,8 +86,7 @@ def sidecar_path(output: DatasetDigest) -> Path:
     For a layer inside a container, the manifest cannot go inside the container
     -- it would change the container's own digest -- so it goes beside it:
     ``<container>.<layer>.provenance.json``, with ``/`` in the layer name
-    replaced by ``.``. Provisional: where such a record belongs is an open
-    question for the specification.
+    replaced by ``.``, as section 3.1 specifies since draft.9.
     """
     base = Path(output.path)
     if output.layer:

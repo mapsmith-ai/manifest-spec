@@ -30,7 +30,8 @@ name. It returns the ArcPy `Result` and the paths of the manifests it wrote.
 
 **For tools run interactively** — from the Geoprocessing pane or the Python window — the
 [add-in](addin/README.md) records them as they run, through the same package
-(`provenance_manifest_arcgis_pro.capture`).
+(`provenance_manifest_arcgis_pro.capture`). It is source only, does nothing until you enable it,
+and its README lists what it does not record yet.
 
 ## What goes in the record
 

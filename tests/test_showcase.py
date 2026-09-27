@@ -145,6 +145,23 @@ def test_every_emitter_says_it_is_not_affiliated_with_the_engine(emitter: Path):
     )
 
 
+def emitter_readmes() -> list[str]:
+    """Every README under `emitters/`, at any depth: an add-in or a plugin inside an
+    emitter has its own page, and a visitor can land on it first."""
+    readmes = [
+        rel for rel in tracked_files() if rel.startswith("emitters/") and rel.endswith("/README.md")
+    ]
+    assert readmes, "no README under emitters/: the derivation is broken"
+    return sorted(readmes)
+
+
+@pytest.mark.parametrize("readme", emitter_readmes())
+def test_every_page_under_emitters_says_it_is_not_affiliated(readme: str):
+    assert "Not affiliated with" in (ROOT / readme).read_text(encoding="utf-8"), (
+        f"{readme} names an engine and has no non-affiliation line"
+    )
+
+
 # Top-level directories the Apache-2.0 sentence does not have to name: the
 # specification text is the other licence, and the tests are not a deliverable.
 NOT_UNDER_THE_CODE_LICENCE_SENTENCE = {"spec", "tests"}
