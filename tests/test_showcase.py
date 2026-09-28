@@ -131,7 +131,8 @@ def test_every_url_into_this_repository_names_a_file_that_exists(page: Path):
     """
     text = page.read_text(encoding="utf-8")
     missing = sorted({p for p in SELF_URL.findall(text) if not (ROOT / p).exists()})
-    assert not missing, f"{page.relative_to(ROOT).as_posix()} points at files that are not here: {missing}"
+    where = page.relative_to(ROOT).as_posix()
+    assert not missing, f"{where} points at files that are not here: {missing}"
 
 
 def test_the_quickstart_urls_are_found_at_all():
