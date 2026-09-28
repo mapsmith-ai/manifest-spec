@@ -17,8 +17,8 @@ identifiers:
 license:
   - CC-BY-4.0
   - Apache-2.0
-version: "1.0.0-draft.9"
-date-released: "2026-09-27"
+version: "1.0.0-draft.10"
+date-released: "2026-09-28"
 keywords:
   - provenance
   - geospatial

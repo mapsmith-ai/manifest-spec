@@ -9,6 +9,8 @@
   "empty-verification.json": "at least one",
   "engine-without-version.json": "engine.version",
   "finished-before-started.json": "precedes",
+  "input-argument-not-a-string.json": "`inputs[1].argument` must be a string or null",
+  "input-environment-not-a-string.json": "`inputs[1].environment.GDAL_PAM_ENABLED` must be a string",
   "layer-not-a-string.json": "`inputs[1].layer` must be a string or null",
   "local-timezone.json": "UTC",
   "missing-parameters.json": "parameters",

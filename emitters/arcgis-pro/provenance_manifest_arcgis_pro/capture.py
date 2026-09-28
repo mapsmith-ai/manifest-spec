@@ -102,7 +102,7 @@ def start(path: Path) -> dict:
             continue
         for target in _paths(param):
             try:
-                inputs.append(_as_dict(dataset_digest(target)))
+                inputs.append(dict(_as_dict(dataset_digest(target)), argument=param.get("name")))
             except (OSError, ValueError) as exc:
                 unhashed.append(f"{param.get('name')}={str(target).replace(chr(92), '/')} ({exc})")
         for value in param.get("unresolved") or []:
@@ -183,6 +183,8 @@ def finish(path: Path) -> list[Path]:
         DatasetDigest(path=i["path"], sha256=i["sha256"], kind=i["kind"], layer=i.get("layer"))
         for i in capture.get("inputs", [])
     ]
+    # The tool parameter each input came from (draft.10, `inputs[].argument`).
+    input_arguments = [i.get("argument") for i in capture.get("inputs", [])]
     parameters = {
         p["name"]: (
             arcgis._posix(p["value"]) if (p.get("dataset") or _paths(p)) else p.get("value")
@@ -277,6 +279,7 @@ def finish(path: Path) -> list[Path]:
             operation=tool_id,
             parameters=parameters,
             inputs=inputs,
+            input_arguments=input_arguments,
             output=digest,
             output_crs=crs,
             engine=engine,

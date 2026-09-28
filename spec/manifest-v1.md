@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.9
+# Provenance manifests for geospatial datasets — v1.0.0-draft.10
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent
@@ -170,8 +170,9 @@ record it.
 **Optional fields of the mandatory objects.** The schema has carried these since `1.0.0-draft.3`,
 and until this paragraph was added — after `draft.6` was tagged — the prose did not describe
 them, so a producer reading it alone would not emit them and a consumer would not know what their
-absence means. It is a clarification in the sense of §5: no record's conformance moves, because
-the schema already said all of it.
+absence means. For the rows present since `draft.3` it is a clarification in the sense of §5: no
+record's conformance moves, because the schema already said all of it. The two rows marked
+`1.0.0-draft.10` are not, and are said apart below the table.
 
 | field | holds |
 |---|---|
@@ -179,6 +180,15 @@ the schema already said all of it.
 | `verification[].hint` | string or null: what to do about a failure, for the reader who has to act on it |
 | `verification[].argument` | string or null: which input or parameter the check is about. Without it, one check run on two inputs produces two identically named entries that a consumer indexing by name collapses into one |
 | `inputs[].crs` | string or null: the input's coordinate reference system as a short label (e.g. `EPSG:32610`), null when it declares none. A label, not an identity: a consumer comparing coordinate systems compares the systems, not the spellings |
+| `inputs[].argument` | string or null, since `1.0.0-draft.10`: which argument or parameter of the operation read this input — `values` and `weights`, `input` and `clip_to`. The order of `inputs[]` is not significant, so without it a record of an operation that reads two datasets in two roles cannot say which played which: swapping them changes the numbers, and the two records differ only in file names. The twin of `verification[].argument`, for the same reason |
+| `inputs[].environment` | object of strings, since `1.0.0-draft.10`: section 3.8 narrowed to one input — the configuration that changed how *this* file was read. See §3.8 |
+
+**The two `inputs[]` rows marked `1.0.0-draft.10` are a narrowing, not a clarification.** Until
+that draft, `argument` and `environment` on an input were unknown fields, which §3.5 permits with
+any value: the prefix rule binds check names, `crs_decisions` and `repairs`, not the keys of an
+input. A record carrying `"argument": 2` or `"environment": "PAM on"` conformed under `draft.9`
+and does not under `draft.10`. That is a narrowing in the sense of §5, and the reason the label
+moved.
 
 `crs_decisions` (each decision **with its reason** — the what without the why loses the part an
 auditor needs), `notes` (how inputs were handled before the engine saw them), `repairs` (every
@@ -404,6 +414,16 @@ and everything to state.
 A producer records what it knows influenced the result; it is not required to dump the
 environment. An empty or absent `environment` claims nothing, exactly like an absent
 `crs_decisions`.
+
+**One input's configuration, since `1.0.0-draft.10`.** Some of what §3.8 describes is a fact about
+one file rather than about the run: a sidecar sits beside one raster, and the georeferencing source
+GDAL used was chosen for that file. An operation that reads two rasters can meet a sidecar on one
+and not the other, and a record-level object cannot say which. `inputs[].environment` holds such
+facts for the input they concern, with the same rules as the record-level field (strings, what
+influenced the result, empty or absent claims nothing). A fact that applies to the whole run stays at the
+record level and is not repeated on every input. Until this field existed, a producer that wanted
+to say it had to invent a prefixed key of its own, which a consumer who did not know that producer
+could not read.
 
 ## 4. Conformance
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .digest import DatasetDigest
 
-SPEC_VERSION = "1.0.0-draft.9"
+SPEC_VERSION = "1.0.0-draft.10"
 PRODUCER = "provenance-manifest-arcgis-pro"
 PRODUCER_VERSION = "0.0.1"
 # Every key the specification does not define carries this prefix (spec 3.5,
@@ -26,10 +26,14 @@ def utcnow() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def dataset_entry(d: DatasetDigest) -> dict:
+def dataset_entry(d: DatasetDigest, argument: str | None = None) -> dict:
     entry: dict = {"path": d.path, "sha256": d.sha256}
     if d.layer is not None:
         entry["layer"] = d.layer
+    # Since draft.10: the tool parameter that read this input. The order of
+    # `inputs` is not significant, so this is the only place the role survives.
+    if argument is not None:
+        entry["argument"] = argument
     # A shapefile or a directory container is digested by the listing rule of
     # section 3.3 (draft.9); which rule applies follows from the path and the
     # declared version, so the entry needs no field saying so.
@@ -53,14 +57,22 @@ def build(
     finished_at: str,
     environment: dict[str, str] | None = None,
     messages: list[dict] | None = None,
+    input_arguments: list[str | None] | None = None,
 ) -> dict:
+    """`input_arguments`, when given, names the tool parameter of each input, in
+    the order of `inputs`."""
     if not checks:
         raise ValueError("a manifest needs at least one verification check")
+    if input_arguments is not None and len(input_arguments) != len(inputs):
+        raise ValueError("input_arguments must name one parameter per input")
     record: dict = {
         "spec_version": SPEC_VERSION,
         "operation": operation,
         "parameters": parameters,
-        "inputs": [dataset_entry(d) for d in inputs],
+        "inputs": [
+            dataset_entry(d, (input_arguments or [None] * len(inputs))[n])
+            for n, d in enumerate(inputs)
+        ],
         "engine": engine,
         "verification": checks,
         "started_at": started_at,

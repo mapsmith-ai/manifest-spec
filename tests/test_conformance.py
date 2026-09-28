@@ -262,6 +262,16 @@ def _mutations() -> list[tuple[tuple, object]]:
                 found.append(((*prefix, sub), wrong))
             if isinstance(sub_spec, dict) and sub_spec.get("properties"):
                 descend((*prefix, sub), sub_spec)
+            # The values of a nested map, since draft.10: `inputs[].environment`
+            # is the first object of strings below the top level, and the
+            # top-level branch further down was the only one that looked at
+            # `additionalProperties`. Without this, a non-string inside one
+            # input's environment was mutated by nothing -- one fixture held it.
+            extra = sub_spec.get("additionalProperties") if isinstance(sub_spec, dict) else None
+            if isinstance(extra, dict):
+                wrong = _wrong_value(extra)
+                if wrong is not _MISSING:
+                    found.append(((*prefix, sub, "x-any-extra-key"), wrong))
 
     for name, spec in SCHEMA["properties"].items():
         wrong = _wrong_value(spec)
@@ -316,6 +326,9 @@ def _maximal_record() -> dict:
     # The layer of a multi-layer container, which the format declares and this
     # record did not carry: the mutation tests below skipped it in silence.
     record["inputs"][0]["layer"] = "basins"
+    # Since draft.10: the role of the input by name, and its own configuration.
+    record["inputs"][0]["argument"] = "dem"
+    record["inputs"][0]["environment"] = {"sidecar": "dem.tif.aux.xml present and read"}
     record["notes"] = ["the DEM was copied to a workspace path before the engine saw it"]
     # `error` since 2026-09-10, when draft.5 declared it nullable: the guard
     # below requires this record to carry every field the format declares, and
@@ -378,6 +391,8 @@ def test_the_mutation_table_covers_the_declared_surface():
         ("notes",), ("notes", 0), ("repairs",), ("repairs", 0),
         ("parameters_redacted",),
         ("inputs", 0, "layer"), ("inputs", 0, "crs"),
+        ("inputs", 0, "argument"), ("inputs", 0, "environment"),
+        ("inputs", 0, "environment", "x-any-extra-key"),
         ("verification", 0, "critical"), ("verification", 0, "argument"),
         ("environment",), ("crs_decisions", "transformation"),
         ("crs_decisions", "source_crs"),

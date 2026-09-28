@@ -155,6 +155,7 @@ def run(tool: str, *args, **kwargs):
     call.update(kwargs)
 
     inputs: list[DatasetDigest] = []
+    input_arguments: list[str] = []
     unhashed: list[str] = []
     input_crs: dict[str, str | None] = {}
     for p in params:
@@ -173,6 +174,7 @@ def run(tool: str, *args, **kwargs):
                 unhashed.append(f"{p.name}={_posix(path)}")
                 continue
             inputs.append(d)
+            input_arguments.append(p.name)
             input_crs[path] = _crs(path)
 
     environment = _environment()
@@ -303,6 +305,7 @@ def run(tool: str, *args, **kwargs):
             operation=tool_id,
             parameters=ran_with,
             inputs=inputs,
+            input_arguments=input_arguments,
             output=digest,
             output_crs=crs,
             engine=engine,

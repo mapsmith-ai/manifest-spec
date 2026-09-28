@@ -37,7 +37,9 @@ Python window; its README lists what it does not record yet.
 ## What goes in the record
 
 - **Inputs, hashed before the tool runs**, so the digest describes what was read, not what was on
-  disk afterwards. **Outputs, hashed after.**
+  disk afterwards. **Outputs, hashed after.** Each input names the tool parameter it was read
+  through (`inputs[].argument`, since `draft.10`), so a tool that reads two datasets in two roles
+  says which was which.
 - **The parameters the tool ran with**, not the ones passed: `Result.getInput` returns the
   defaults filled in (`method: PLANAR`, `dissolve_option: NONE`), which is what
   [section 3.2](../../spec/manifest-v1.md#32-mandatory-fields) asks for. Paths are written with `/`.

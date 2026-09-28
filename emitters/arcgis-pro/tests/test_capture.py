@@ -101,6 +101,8 @@ def test_a_multi_value_parameter_digests_every_dataset_and_names_what_it_cannot(
     assert [i["sha256"] for i in result["inputs"]] == [
         hashlib.sha256(b"a").hexdigest(), hashlib.sha256(b"b").hexdigest()]
     assert result["unhashed"] == ["inputs=roads_view (not resolved to a dataset on disk)"]
+    # draft.10: each digest names the parameter it was read through.
+    assert [i["argument"] for i in result["inputs"]] == ["inputs", "inputs"]
 
 
 def test_a_view_only_tool_writes_no_record_and_does_not_need_arcpy(tmp_path):
@@ -166,3 +168,5 @@ def test_a_selection_on_the_input_layer_is_a_failed_non_critical_check(tmp_path,
     [kept] = record["x-provenance-manifest-arcgis-pro:layer_filters"]
     assert kept["parameter"] == "in_features" and kept["selection_count"] == 3
     assert record["parameters"]["in_features"] == "roads_view"
+    [only] = record["inputs"]
+    assert only["argument"] == "in_features"
