@@ -30,8 +30,10 @@ Cite it as `10.5281/zenodo.22205213`, the concept DOI, which resolves to the lat
 version. To cite the exact draft you read, take its version DOI from the
 [Zenodo record](https://doi.org/10.5281/zenodo.22205213).
 
-**One gap, stated because a reader can hit it.** `draft.4` was never tagged and never archived,
-so it has no version DOI; it is citable only by commit. Until 21 September 2026 neither had `draft.5`,
+**Three gaps, stated because a reader can hit them.** `draft.1` and `draft.2` were published
+before the archive existed (it starts at `draft.3`, on 31 August 2026), and `draft.4` was never
+tagged: none of the three has a tag or a version DOI, and each is citable only by commit. Until
+21 September 2026 neither had `draft.5`,
 while this paragraph claimed the concept DOI "always resolves to the current version" — false
 for every reader since draft.4. That is the discipline the specification demands of a label in
 [§5](spec/manifest-v1.md#5-versioning) (*a label is spent the moment it is published, and pushing is publishing*),
@@ -39,12 +41,6 @@ applied to producers and not to us. Every draft from `draft.5` on is archived, a
 lags the tag: on 25 September 2026 Zenodo took about ninety minutes to create each record. So
 during the hours after a release the concept DOI still resolves to the previous draft, and the
 tag is the way to cite the new one until the record exists.
-
-This paragraph used to say which draft the DOI resolves to *today*, and was wrong three times in
-two days: once before a record existed, once after it appeared, and once more when the next one
-did. It also claimed that archive sentences were checked against Zenodo's API, and nothing here
-checks them. A sentence about somebody else's system that has to be true at every moment is a
-sentence nobody can keep true, so this one says only what does not move.
 
 ## What is in this repository
 
@@ -62,8 +58,7 @@ sentence nobody can keep true, so this one says only what does not move.
 The schema and the validator are **two separate implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and
 requires **both** to reject it. A record one accepts and the other rejects is a bug in one of
-them, and the suite says which one is the lenient one. A validator that disagrees with `conformance/` is wrong, whoever wrote it —
-including us.
+them, and the suite says which one is the lenient one.
 
 ## What a manifest does not claim
 
@@ -93,8 +88,12 @@ stdlib file, and it imports nothing from any product:
 
 ```bash
 curl -O https://raw.githubusercontent.com/mapsmith-ai/manifest-spec/main/examples/emitter_minimal.py
-python emitter_minimal.py | xargs python validate.py
+python emitter_minimal.py    # writes a dataset and its manifest, and prints the manifest's path
+python validate.py <the path it printed>
 ```
+
+Two steps rather than a pipe on purpose: on Windows the printed path carries backslashes and a
+carriage return, and `| xargs` passes both through.
 
 And check a validator of your own — yours, ours, anyone's — against the
 conformance corpus, which is the part that settles arguments:

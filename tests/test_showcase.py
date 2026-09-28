@@ -115,6 +115,30 @@ def test_every_relative_link_resolves(page: Path):
     assert not dead, f"{page.relative_to(ROOT).as_posix()} links to: " + "; ".join(dead)
 
 
+SELF_URL = re.compile(
+    r"https://(?:raw\.githubusercontent\.com/mapsmith-ai/manifest-spec/main/"
+    r"|github\.com/mapsmith-ai/manifest-spec/(?:blob|tree)/main/)([^\s)\"'<>#]+)"
+)
+
+
+@pytest.mark.parametrize("page", tracked_markdown(), ids=lambda p: p.relative_to(ROOT).as_posix())
+def test_every_url_into_this_repository_names_a_file_that_exists(page: Path):
+    """The quickstart tells a reader to `curl` files by URL, code blocks included.
+
+    A relative link is checked above; an absolute URL into this repository is
+    the same promise written differently, and a file moved or renamed would
+    leave the quickstart downloading a 404 page into validate.py.
+    """
+    text = page.read_text(encoding="utf-8")
+    missing = sorted({p for p in SELF_URL.findall(text) if not (ROOT / p).exists()})
+    assert not missing, f"{page.relative_to(ROOT).as_posix()} points at files that are not here: {missing}"
+
+
+def test_the_quickstart_urls_are_found_at_all():
+    # A pattern that matches nothing makes the test above pass on every page.
+    assert len(SELF_URL.findall(README.read_text(encoding="utf-8"))) >= 2
+
+
 def emitter_dirs() -> list[Path]:
     if not EMITTERS.is_dir():
         return []
