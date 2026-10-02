@@ -16,9 +16,9 @@ results with the paths of the manifests written. It is the minimal form of
 the provider: runs started from the Toolbox, the model designer or the
 history are not recorded yet. That is deliberate. A wrapper around
 ``processing.run`` sees every run made through it on every QGIS version,
-while the post-execution hook of the Processing settings no longer fires on
-QGIS 4 (measured by another project, GeoProvenance, on 4.2.1), so the
-interactive capture needs its own design rather than a hook.
+while the pre- and post-execution scripts of the Processing settings never
+run: measured on QGIS 3.44.12 and 4.2.3, from code and through the dialog's
+executor. So the interactive capture needs its own design rather than a hook.
 
 What a record holds, and why each part is there:
 

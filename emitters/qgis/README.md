@@ -10,7 +10,7 @@ trademark of QGIS.ORG.*
 
 **Status: a first step.** Runs started from code, through `run`, are recorded; runs from the
 Processing Toolbox, the model designer and the history are not yet. Tested end to end on QGIS
-3.44.12 (`live_check.py`). Not on PyPI or on the QGIS plugin repository yet.
+3.44.12 and 4.2.3 (`live_check.py`). Not on PyPI or on the QGIS plugin repository yet.
 
 ## Use
 
@@ -31,8 +31,10 @@ results, manifests = run("native:buffer", {
 its results with the paths of the manifests it wrote.
 
 **Why a wrapper first, and not a hook.** A wrapper sees every run made through it on every QGIS
-version. The post-execution script hook in the Processing settings does not fire on QGIS 4
-(reported by another project, GeoProvenance, on 4.2.1), so recording the runs started from the
+version. The pre- and post-execution scripts in the Processing settings are not a way in:
+measured on QGIS 3.44.12 and 4.2.3, neither runs, whether the algorithm is started with
+`processing.run` or through the executor the Processing dialog uses; the settings are saved and
+read back, and no code in either version reads them. So recording the runs started from the
 Toolbox needs its own design: that is the next step, not a setting.
 
 ## What goes in the record
@@ -78,6 +80,7 @@ algorithm that fails, an area with and without an ellipsoid), every manifest val
 
 ```
 "C:\Program Files\QGIS 3.44.12\bin\python-qgis-ltr.bat" emitters\qgis\live_check.py
+"C:\Program Files\QGIS 4.2.3\bin\python-qgis.bat" emitters\qgis\live_check.py
 ```
 
 ## Licence
