@@ -16,9 +16,34 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "examples"))
 sys.path.insert(0, str(ROOT / "emitters" / "arcgis-pro"))
+sys.path.insert(0, str(ROOT / "emitters" / "qgis"))
 
 from multi_file_digest import dataset_sha256  # noqa: E402
-from provenance_manifest_arcgis_pro.digest import dataset_digest  # noqa: E402
+from provenance_manifest_arcgis_pro.digest import dataset_digest as arcgis_digest  # noqa: E402
+from provenance_manifest_qgis.digest import dataset_digest as qgis_digest  # noqa: E402
+
+
+def dataset_digest(path):
+    """Both emitters' digest, which must agree -- in value and in refusing.
+
+    The QGIS emitter carries a copy of the module rather than importing it, so
+    each installs alone into its engine's Python; a copy can drift, and this is
+    where it would show. Exactly one of the two raising is a failure; both
+    raising re-raises the first, so `pytest.raises` below still sees it.
+    """
+    results = []
+    for digest in (arcgis_digest, qgis_digest):
+        try:
+            results.append(digest(path))
+        except Exception as exc:  # compared, then re-raised
+            results.append(exc)
+    first, second = results
+    if isinstance(first, Exception) or isinstance(second, Exception):
+        assert type(first) is type(second), f"one emitter raised and the other did not: {results}"
+        raise first
+    same = (first.sha256, first.kind, first.layer) == (second.sha256, second.kind, second.layer)
+    assert same, results
+    return first
 
 
 def sha(b: bytes) -> str:
