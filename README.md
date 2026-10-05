@@ -22,7 +22,11 @@ operation and disagree with it**.
 ```
 
 **Status: draft** (`1.0.0-draft.10`). Field names may still change; anything that does is visible
-in this repository's history.
+in this repository's history. Since that tag, `main` names Windows directory junctions and mount
+points as links in section 3.3, which the tagged text called only "symbolic links": they are
+neither members nor followed, and the reference digest and both emitters changed to match, so
+a `.gdb` holding a junction gets a different digest from the `draft.10` reference. The next
+draft carries it.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
 
