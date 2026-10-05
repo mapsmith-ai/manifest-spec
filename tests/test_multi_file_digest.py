@@ -144,3 +144,31 @@ def test_a_single_file_is_the_sha256_of_its_bytes(tmp_path):
     f.write_bytes(b"abc")
     assert dataset_sha256(f) == sha(b"abc")
     assert dataset_digest(f).sha256 == sha(b"abc")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="junctions are a Windows reparse point")
+def test_a_junction_inside_a_container_is_neither_a_member_nor_followed(tmp_path):
+    """Links are neither members nor followed, and a directory junction is a link.
+
+    `is_symlink()` is False for a junction, so until this test the reference and
+    both emitters walked into one and hashed files from outside the container.
+    The answer is computed by hand: the one regular file, nothing behind the
+    junction. The CI runs this on a Windows runner, or it would always skip.
+    """
+    import subprocess
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "o.txt").write_bytes(b"not part of the geodatabase")
+    gdb = tmp_path / "data.gdb"
+    gdb.mkdir()
+    (gdb / "a.gdbtable").write_bytes(b"1")
+    done = subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(gdb / "jn"), str(outside)],
+        capture_output=True, text=True, check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    assert (gdb / "jn" / "o.txt").exists(), "the junction was not created"
+    expected = by_hand([("a.gdbtable", sha(b"1"))])
+    assert dataset_sha256(gdb) == expected
+    assert dataset_digest(gdb).sha256 == expected

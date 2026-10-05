@@ -17,7 +17,8 @@ per member, sorted by the bytes of ``<name>``.
 * A directory container (a directory whose name ends in ``.gdb``) is every
   regular file under it, named by its path relative to the container, except
   lock files (never opened), names beginning with ``.``, ``Thumbs.db`` and
-  ``desktop.ini``. Symbolic links are neither members nor followed.
+  ``desktop.ini``. Symbolic links, and Windows directory junctions and mount
+  points, are neither members nor followed.
 * Any other path is one file: the SHA-256 of its bytes.
 """
 
@@ -25,12 +26,31 @@ from __future__ import annotations
 
 import hashlib
 import os
+import stat
 import sys
 from pathlib import Path
 
 SHAPEFILE_MEMBERS = (".shp", ".shx", ".dbf", ".prj", ".cpg")
 CONTAINER_SUFFIXES = (".gdb",)
 NOT_MEMBERS = ("thumbs.db", "desktop.ini")
+
+
+def _is_link(path: Path) -> bool:
+    """A symbolic link, or a Windows directory junction or mount point.
+
+    Section 3.3: links are neither members nor followed. `is_symlink()` is False
+    for a junction, which is a link to a directory in everything but name, so
+    the reparse tag is read too -- that one tag only: other reparse points
+    (cloud-storage placeholders, deduplicated files) are regular files and stay
+    members. `Path.is_junction()` would do it, from Python 3.12; this runs on 3.9.
+    """
+    if path.is_symlink():
+        return True
+    try:
+        tag = getattr(os.lstat(path), "st_reparse_tag", 0)
+    except OSError:
+        return False
+    return bool(tag) and tag == getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", 0xA0000003)
 
 
 def file_sha256(path: Path) -> str:
@@ -52,7 +72,7 @@ def shapefile_members(shp: Path) -> dict:
     stem = shp.name[: -len(".shp")].lower()
     found: dict = {}
     for candidate in shp.parent.iterdir():
-        if not candidate.is_file() or candidate.is_symlink():
+        if not candidate.is_file() or _is_link(candidate):
             continue
         lowered = candidate.name.lower()
         for ext in SHAPEFILE_MEMBERS:
@@ -71,13 +91,13 @@ def shapefile_members(shp: Path) -> dict:
 def container_members(root: Path) -> dict:
     members = {}
     for dirpath, dirs, files in os.walk(root):  # does not follow directory links
-        dirs[:] = [d for d in dirs if not (Path(dirpath) / d).is_symlink()]
+        dirs[:] = [d for d in dirs if not _is_link(Path(dirpath) / d)]
         for name in files:
             lowered = name.lower()
             if lowered.endswith(".lock") or name.startswith(".") or lowered in NOT_MEMBERS:
                 continue  # a lock file is never opened: see section 3.3
             path = Path(dirpath) / name
-            if path.is_symlink():
+            if _is_link(path):
                 continue
             members[path.relative_to(root).as_posix()] = file_sha256(path)
     return members

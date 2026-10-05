@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -64,6 +65,24 @@ def listing_sha256(members: dict[str, str]) -> str:
 NOT_MEMBERS = ("thumbs.db", "desktop.ini")
 
 
+def _is_link(path: Path) -> bool:
+    """A symbolic link, or a Windows directory junction or mount point.
+
+    Section 3.3: links are neither members nor followed. `is_symlink()` is False
+    for a junction, which is a link to a directory in everything but name, so
+    the reparse tag is read too -- that one tag only: other reparse points
+    (cloud-storage placeholders, deduplicated files) are regular files and stay
+    members. `Path.is_junction()` would do it, from Python 3.12; this runs on 3.9.
+    """
+    if path.is_symlink():
+        return True
+    try:
+        tag = getattr(os.lstat(path), "st_reparse_tag", 0)
+    except OSError:
+        return False
+    return bool(tag) and tag == getattr(stat, "IO_REPARSE_TAG_MOUNT_POINT", 0xA0000003)
+
+
 def _excluded(name: str) -> bool:
     lowered = name.lower()
     return lowered.endswith(".lock") or name.startswith(".") or lowered in NOT_MEMBERS
@@ -72,12 +91,12 @@ def _excluded(name: str) -> bool:
 def directory_members(root: Path) -> dict[str, str]:
     members: dict[str, str] = {}
     for dirpath, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if not (Path(dirpath) / d).is_symlink()]
+        dirs[:] = [d for d in dirs if not _is_link(Path(dirpath) / d)]
         for name in files:
             if _excluded(name):
                 continue  # a lock file is never opened
             path = Path(dirpath) / name
-            if path.is_symlink():
+            if _is_link(path):
                 continue
             members[path.relative_to(root).as_posix()] = file_sha256(path)
     return members
@@ -88,7 +107,7 @@ def shapefile_members(shp: Path) -> dict[str, str]:
     stem = shp.name[: -len(".shp")].lower()
     found: dict[str, Path] = {}
     for candidate in shp.parent.iterdir():
-        if not candidate.is_file() or candidate.is_symlink():
+        if not candidate.is_file() or _is_link(candidate):
             continue
         for ext in SHAPEFILE_MEMBERS:
             if candidate.name.lower() == stem + ext:

@@ -115,8 +115,10 @@ digests as the SHA-256 of the empty text. The members, and the name each is list
   while the data is open, they cannot be read while they exist, and their names carry a host name
   and a process id: including them would make the digest depend on who has the data open, and
   would put a machine's name in the record. The other exclusions are what operating systems drop
-  into any folder they display; no geodatabase file is named that way. Symbolic links are neither
-  members nor followed. The container is the unit, as for single-file containers above: `path`
+  into any folder they display; no geodatabase file is named that way. Symbolic links, and on
+  Windows directory junctions and volume mount points (reparse tag `IO_REPARSE_TAG_MOUNT_POINT`), are
+  neither members nor followed; other reparse points -- cloud-storage placeholders, deduplicated
+  files -- are regular files and are members. The container is the unit, as for single-file containers above: `path`
   names the container, not the container joined with the layer, and `layer` names the dataset
   inside it.
 
