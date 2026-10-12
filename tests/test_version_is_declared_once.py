@@ -163,9 +163,16 @@ def test_the_archive_metadata_and_the_citation_file_do_not_contradict() -> None:
         f"says {title.group(1)!r}"
     )
 
+    # An entity author is `name:`; a person is `family-names:` + `given-names:`,
+    # which Zenodo spells "Family, Given". Both forms have to be recognised, or
+    # the first person credited would fail this test for being credited.
+    cited = set(regex.findall(r"^\s*-\s*name:\s*\"(.+)\"", citation, flags=regex.MULTILINE))
+    families = regex.findall(r"^\s*-\s*family-names:\s*(.+)$", citation, flags=regex.MULTILINE)
+    givens = regex.findall(r"^\s*given-names:\s*(.+)$", citation, flags=regex.MULTILINE)
+    cited |= {f"{family.strip()}, {given.strip()}" for family, given in zip(families, givens, strict=True)}
     creators = [c["name"] for c in metadata["creators"]]
     for name in creators:
-        assert name in citation, (
+        assert name in cited, (
             f".zenodo.json credits {name!r}, which does not appear in CITATION.cff"
         )
 

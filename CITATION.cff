@@ -8,6 +8,9 @@ title: "Provenance manifests for geospatial datasets"
 type: software
 authors:
   - name: "The MapSmith project"
+  - family-names: Caporossi
+    given-names: Gianluca
+    orcid: "https://orcid.org/0009-0006-4966-1856"
 repository-code: "https://github.com/mapsmith-ai/manifest-spec"
 doi: "10.5281/zenodo.22205213"
 identifiers:
