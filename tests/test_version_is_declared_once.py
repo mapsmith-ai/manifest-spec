@@ -169,10 +169,8 @@ def test_the_archive_metadata_and_the_citation_file_do_not_contradict() -> None:
     cited = set(regex.findall(r"^\s*-\s*name:\s*\"(.+)\"", citation, flags=regex.MULTILINE))
     families = regex.findall(r"^\s*-\s*family-names:\s*(.+)$", citation, flags=regex.MULTILINE)
     givens = regex.findall(r"^\s*given-names:\s*(.+)$", citation, flags=regex.MULTILINE)
-    cited |= {
-        f"{family.strip()}, {given.strip()}"
-        for family, given in zip(families, givens, strict=True)
-    }
+    assert len(families) == len(givens), "a CITATION.cff person lacks a family or given name"
+    cited |= {f"{family.strip()}, {given.strip()}" for family, given in zip(families, givens)}
     creators = [c["name"] for c in metadata["creators"]]
     for name in creators:
         assert name in cited, (
