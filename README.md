@@ -25,8 +25,10 @@ operation and disagree with it**.
 in this repository's history. Since that tag, `main` names Windows directory junctions and mount
 points as links in section 3.3, which the tagged text called only "symbolic links": they are
 neither members nor followed, and the reference digest and both emitters changed to match, so
-a `.gdb` holding a junction gets a different digest from the `draft.10` reference. The next
-draft carries it.
+a `.gdb` holding a junction gets a different digest from the `draft.10` reference. Section 3.7
+also says, as a clarification that changes no key, that the accuracy an engine reports does not
+decide `is_ballpark`: PROJ reports -1 both for a ballpark and for a shift nobody has stated an
+accuracy for. The next draft carries both.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
 
@@ -57,8 +59,8 @@ tag is the way to cite the new one until the record exists.
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 | [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
 | [`examples/multi_file_digest.py`](examples/multi_file_digest.py) | The digest of a shapefile or a file geodatabase as §3.3 defines it since draft.9 — what a producer copies and a consumer recomputes |
-| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) that does the same for tools run inside ArcGIS Pro — tested end to end so far on tools run from code. One emitter per engine, each separate from the others |
-| [`emitters/qgis/`](emitters/qgis/) | A reference emitter for QGIS Processing, first step: runs an algorithm from code and writes a conforming manifest beside each output, with the processing context's ellipsoid and units and a check for a distance applied in degrees. Runs from the Toolbox are not recorded yet |
+| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) that does the same for tools run inside ArcGIS Pro — tested end to end so far on tools run from code; the datum transformation is not recorded yet. One emitter per engine, each separate from the others |
+| [`emitters/qgis/`](emitters/qgis/) | A reference emitter for QGIS Processing, first step: runs an algorithm from code and writes a conforming manifest beside each output, with the processing context's ellipsoid and units and a check for a distance applied in degrees. Runs from the Toolbox, and the datum transformation, are not recorded yet |
 
 The schema and the validator are **two separate implementations**, kept in agreement by a
 conformance suite that mutates every field the schema declares — required and recommended — and
