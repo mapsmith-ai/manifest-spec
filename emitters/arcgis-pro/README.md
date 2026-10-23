@@ -66,6 +66,14 @@ ArcGIS Pro already keeps a geoprocessing history — tool, parameters, times, me
 adds is what that history does not hold: the digest of the bytes read and written, and the checks,
 in a format a consumer can read without ArcGIS.
 
+**Not in the record: the datum transformation.** `crs_decisions.transformation`
+([section 3.7](../../spec/manifest-v1.md#37-crs_decisions-the-shape))
+is not written: this emitter does not yet read which geographic transformation the engine
+applied between two datums, or that it applied none. A run that crosses datums gets a record
+that is true about everything but that, and silent on it -- which is the second trap of the
+census this format was built against. *(Stated 2026-10-23, after the reference implementation
+found its own record wrong on exactly this field.)*
+
 ## Datasets made of several files, and layers inside a container
 
 A file geodatabase is a directory of dozens of files, even for one layer, and a shapefile is a set

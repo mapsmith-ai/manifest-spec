@@ -288,6 +288,14 @@ records a decision it SHOULD use these keys:
 | `transformation` | an object describing *how* they were transformed: `pipeline` (the operation string the engine used, or null when it reports none), `accuracy_m` (the transformation's stated accuracy in metres, or null when the engine states none), `is_ballpark` (true when no datum transformation was available and the engine fell back to treating the datums as equivalent), `better_available_m` (see below) |
 | `round_trip` | when the operation computed in `analysis_crs` and wrote its output back in the caller's CRS: an object with two legs, `transformation` (the caller's CRS to `analysis_crs`) and `return_transformation` (`analysis_crs` back to the caller's CRS), each of the same shape as `transformation` above (see below) |
 
+The accuracy an engine reports does not decide `is_ballpark`. PROJ reports -1 both for a ballpark
+and for a datum shift whose accuracy nobody has stated -- the one a CRS's own definition declares
+(`+towgs84`, `TOWGS84[]`), and some registry operations -- and the reference implementation read
+that value as "no shift" from 0.3.0 to 0.9.0, over coordinates a Helmert had moved. Decide it from
+what ran: `is_ballpark: false` with `accuracy_m: null` and a non-null `pipeline` means a shift was
+applied with no stated accuracy, which is a third state and not either of the other two. *(Added
+2026-10-23 as a clarification; the keys and their meaning are unchanged.)*
+
 **Any other key MUST be named `x-<producer>:<name>`**, in the grammar of an extension check name
 (§3.6). New in `1.0.0-draft.7`. Until then this sentence permitted additional keys "under the
 extension rule above", which could be read as §3.5 — a SHOULD with no syntax — or as §3.6 — a

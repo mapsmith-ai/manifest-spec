@@ -71,6 +71,14 @@ user name in the record.
 alone into its engine's Python; [`tests/test_multi_file_digest.py`](../../tests/test_multi_file_digest.py)
 holds both copies to the specification's reference function, so one that drifted would fail there.
 
+**Not in the record: the datum transformation.** `crs_decisions.transformation`
+([section 3.7](../../spec/manifest-v1.md#37-crs_decisions-the-shape))
+is not written: this emitter does not yet read which geographic transformation the engine
+applied between two datums, or that it applied none. A run that crosses datums gets a record
+that is true about everything but that, and silent on it -- which is the second trap of the
+census this format was built against. *(Stated 2026-10-23, after the reference implementation
+found its own record wrong on exactly this field.)*
+
 ## Tests
 
 `pytest emitters/qgis/tests` runs without QGIS: the record shape against the validator, and how
