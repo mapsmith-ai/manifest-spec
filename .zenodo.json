@@ -2,7 +2,7 @@
   "upload_type": "publication",
   "publication_type": "technicalnote",
   "title": "Provenance manifests for geospatial datasets",
-  "version": "1.0.0-draft.10",
+  "version": "1.0.0-draft.11",
   "creators": [
     {"name": "The MapSmith project"},
     {"name": "Caporossi, Gianluca", "orcid": "0009-0006-4966-1856"}

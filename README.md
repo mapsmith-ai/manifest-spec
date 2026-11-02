@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.10",
+  "spec_version": "1.0.0-draft.11",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,14 +21,14 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.10`). Field names may still change; anything that does is visible
-in this repository's history. Since that tag, `main` names Windows directory junctions and mount
-points as links in section 3.3, which the tagged text called only "symbolic links": they are
+**Status: draft** (`1.0.0-draft.11`). Field names may still change; anything that does is visible
+in this repository's history. Since `draft.10`, `main` names Windows directory junctions and mount
+points as links in section 3.3, which that tag called only "symbolic links": they are
 neither members nor followed, and the reference digest and both emitters changed to match, so
 a `.gdb` holding a junction gets a different digest from the `draft.10` reference. Section 3.7
 also says, as a clarification that changes no key, that the accuracy an engine reports does not
 decide `is_ballpark`: PROJ reports -1 both for a ballpark and for a shift nobody has stated an
-accuracy for. The next draft carries both.
+accuracy for. This draft carries both.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
 
