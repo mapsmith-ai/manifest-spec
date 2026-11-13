@@ -110,10 +110,12 @@ def test_a_record_without_checks_is_refused():
 
 
 def test_writing_replaces_a_hardlinked_sidecar_without_touching_its_target(tmp_path):
+    import os
+
     target = tmp_path / "outside.json"
     target.write_text("do not change", encoding="utf-8")
     sidecar = tmp_path / "output.provenance.json"
-    sidecar.hardlink_to(target)
+    os.link(target, sidecar)
 
     rec.write(_record(), sidecar)
 

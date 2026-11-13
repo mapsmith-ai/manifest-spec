@@ -284,7 +284,7 @@ def enrich(capture: dict) -> dict:
             return _gap(capture, "parameter count differs from tool schema")
         parameters = [
             _parameter(definition, _unquote(value), output, capture)
-            for definition, value in zip(definitions, arguments, strict=True)
+            for definition, value in zip(definitions, arguments)
         ]
         process = None
         if arcpy.Exists(str(output)):
@@ -299,7 +299,7 @@ def enrich(capture: dict) -> dict:
                 return _gap(capture, "parameter count differs from tool schema")
             parameters = [
                 _parameter(definition, _unquote(value), output, capture)
-                for definition, value in zip(definitions, arguments, strict=True)
+                for definition, value in zip(definitions, arguments)
             ]
     except ValueError as exc:
         if "closing quotation" in str(exc).lower():
