@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .digest import DatasetDigest
 
-SPEC_VERSION = "1.0.0-draft.11"
+SPEC_VERSION = "1.0.0-draft.12"
 PRODUCER = "provenance-manifest-arcgis-pro"
 PRODUCER_VERSION = "0.0.1"
 # Every key the specification does not define carries this prefix (spec 3.5,
@@ -107,5 +107,18 @@ def sidecar_path(output: DatasetDigest) -> Path:
 
 
 def write(record: dict, path: Path) -> Path:
-    path.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    import tempfile
+
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=path.name + ".", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(json.dumps(record, indent=2, ensure_ascii=False) + "\n")
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return path

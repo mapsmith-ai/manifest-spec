@@ -6,7 +6,7 @@ operation and disagree with it**.
 
 ```json
 {
-  "spec_version": "1.0.0-draft.11",
+  "spec_version": "1.0.0-draft.12",
   "operation": "watershed",
   "parameters": {"method": "d8", "n_pour_points": 6},
   "inputs": [
@@ -21,14 +21,13 @@ operation and disagree with it**.
 }
 ```
 
-**Status: draft** (`1.0.0-draft.11`). Field names may still change; anything that does is visible
-in this repository's history. Since `draft.10`, `main` names Windows directory junctions and mount
-points as links in section 3.3, which that tag called only "symbolic links": they are
-neither members nor followed, and the reference digest and both emitters changed to match, so
-a `.gdb` holding a junction gets a different digest from the `draft.10` reference. Section 3.7
-also says, as a clarification that changes no key, that the accuracy an engine reports does not
-decide `is_ballpark`: PROJ reports -1 both for a ballpark and for a shift nobody has stated an
-accuracy for. This draft carries both.
+**Status: draft** (`1.0.0-draft.12`). Field names may still change; anything that does is visible
+in this repository's history. This draft leaves the normative record shape unchanged and extends
+the ArcGIS Pro add-in to one deliberately narrow, fail-closed ModelBuilder case: one interactive
+model, one directly executed Buffer and one identified output, with parent/inner evidence kept
+separate. Unsupported or ambiguous models are coverage gaps, not guessed manifests. The previous
+draft named Windows junctions and mount points as non-followed links and clarified that reported
+accuracy does not decide `is_ballpark`.
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22205213.svg)](https://doi.org/10.5281/zenodo.22205213)
 
@@ -59,7 +58,7 @@ tag is the way to cite the new one until the record exists.
 | [`examples/emitter_minimal.py`](examples/emitter_minimal.py) | A complete conforming producer in under a hundred lines, importing nothing beyond the standard library |
 | [`examples/chain_resolves_by_digest.py`](examples/chain_resolves_by_digest.py) | Multi-step lineage recovered from one file, by content, with no field pointing at another record — §6 |
 | [`examples/multi_file_digest.py`](examples/multi_file_digest.py) | The digest of a shapefile or a file geodatabase as §3.3 defines it since draft.9 — what a producer copies and a consumer recomputes |
-| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) that does the same for tools run inside ArcGIS Pro — tested end to end so far on tools run from code; the datum transformation is not recorded yet. One emitter per engine, each separate from the others |
+| [`emitters/arcgis-pro/`](emitters/arcgis-pro/) | A reference emitter for ArcGIS Pro: runs a geoprocessing tool through ArcPy and writes a conforming manifest beside each output, and an [add-in](emitters/arcgis-pro/addin/) (source only, off until enabled) for tools run inside ArcGIS Pro. Tested end to end from code and on one narrow interactive ModelBuilder Buffer case; other model shapes are explicit gaps. The datum transformation is not recorded yet. One emitter per engine, each separate from the others |
 | [`emitters/qgis/`](emitters/qgis/) | A reference emitter for QGIS Processing, first step: runs an algorithm from code and writes a conforming manifest beside each output, with the processing context's ellipsoid and units and a check for a distance applied in degrees. Runs from the Toolbox, and the datum transformation, are not recorded yet |
 
 The schema and the validator are **two separate implementations**, kept in agreement by a

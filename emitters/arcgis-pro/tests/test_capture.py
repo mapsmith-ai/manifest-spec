@@ -170,3 +170,177 @@ def test_a_selection_on_the_input_layer_is_a_failed_non_critical_check(tmp_path,
     assert record["parameters"]["in_features"] == "roads_view"
     [only] = record["inputs"]
     assert only["argument"] == "in_features"
+
+
+def test_model_manifest_preserves_parent_and_inner_evidence(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "model.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    prefix = "x-provenance-manifest-arcgis-pro:"
+
+    assert record["operation"] == "Buffer_analysis"
+    assert record["output"]["layer"] == "model_buffer"
+    assert [item["layer"] for item in record["inputs"]] == ["fishnet"]
+    assert record["started_at"] == "2026-11-12T18:18:30Z"
+    assert record["finished_at"] == "2026-11-12T18:18:36Z"
+    evidence = record[prefix + "model_evidence"]
+    assert evidence["parent_run_id"] == "parent-1"
+    assert evidence["history_tool"] == "t.Model"
+    assert evidence["captured_launch"] == "geoprocessing_pane"
+    assert evidence["metadata_time_raw"] == "20261112T191834"
+    assert evidence["observed_model_name"] is None
+    assert record[prefix + "timing_scope"] == "parent_model"
+    assert record[prefix + "input_digests_taken"].startswith("after the run")
+    same_container = next(
+        item for item in record["verification"]
+        if item["name"] == prefix + "input_container_includes_output"
+    )
+    assert same_container["passed"] is False
+    assert same_container["critical"] is False
+    assert "not the input state read" in same_container["detail"]
+
+
+def test_model_gap_writes_no_manifest(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    model_capture["messages"] = ["metadata timestamp alone is not enough"]
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "model-gap.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    assert capture.finish(path) == []
+    assert list(tmp_path.glob("*.provenance.json")) == []
+    assert "missing executing message" in json.loads(path.read_text())["coverage_gap"]
+
+
+def test_named_model_is_detected_from_its_executing_message(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    model_capture["tool"] = "t.ProvenanceBufferV2"
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "named-model.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    prefix = "x-provenance-manifest-arcgis-pro:"
+    assert record["operation"] == "Buffer_analysis"
+    assert record[prefix + "model_evidence"]["history_tool"] == "t.ProvenanceBufferV2"
+    assert record[prefix + "launch"] == "geoprocessing_pane"
+
+
+def test_feature_dataset_output_keeps_same_container_warning(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _command
+    from test_model import _fixture as model_fixture
+
+    output = tmp_path / "test.gdb" / "transport" / "model_buffer"
+    output.parent.mkdir(parents=True)
+    output.write_bytes(b"out")
+    command = _command(output)
+    model_capture, arcpy = model_fixture(tmp_path, command=command)
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "feature-dataset.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    names = {item["name"] for item in record["verification"]}
+    assert "x-provenance-manifest-arcgis-pro:input_container_includes_output" in names
+
+
+def test_missing_output_layer_has_a_visible_failed_digest_check(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    (tmp_path / "test.gdb" / "model_buffer").unlink()
+
+    def missing_metadata(dataset):
+        raise FileNotFoundError(dataset)
+
+    arcpy.metadata.Metadata = missing_metadata
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "missing-output.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    check = next(
+        item for item in record["verification"]
+        if item["name"] == "x-provenance-manifest-arcgis-pro:output_digested"
+    )
+    assert check["passed"] is False
+    assert "output" not in record
+
+
+def test_non_model_after_run_behavior_is_unchanged(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    model_capture["tool"] = "analysis.Buffer"
+    model_capture["capture_kind"] = "tool"
+    input_path = tmp_path / "test.gdb" / "fishnet"
+    output_path = tmp_path / "test.gdb" / "model_buffer"
+    model_capture["parameters"] = [
+        {"name": "in_features", "type": "Feature Layer", "value": "fishnet",
+         "is_input": True, "dataset": True, "path": str(input_path), "paths": [str(input_path)]},
+        {"name": "out_feature_class", "type": "Feature Class", "value": str(output_path),
+         "is_input": False, "dataset": True, "path": str(output_path), "paths": [str(output_path)]},
+    ]
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "non-model.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    assert "x-provenance-manifest-arcgis-pro:model_evidence" not in record
+    assert all(
+        item["name"] != "x-provenance-manifest-arcgis-pro:input_container_includes_output"
+        for item in record["verification"]
+    )
+
+
+def test_digest_measurement_times_are_propagated(tmp_path, fake_arcgis, monkeypatch):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "digest-times.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    [manifest] = capture.finish(path)
+    record = json.loads(manifest.read_text(encoding="utf-8"))
+    prefix = "x-provenance-manifest-arcgis-pro:"
+    assert record[prefix + "input_digests_taken_at"].endswith("Z")
+    assert record[prefix + "output_digests_taken_at"].endswith("Z")
+    assert record[prefix + "input_digests_taken_at"] != record["started_at"]
+
+
+def test_named_model_without_executing_marker_never_becomes_an_ordinary_tool(
+    tmp_path, fake_arcgis, monkeypatch
+):
+    from test_model import _fixture as model_fixture
+
+    model_capture, arcpy = model_fixture(tmp_path)
+    model_capture["tool"] = "t.NamedModel"
+    model_capture["capture_kind"] = "model"
+    model_capture["messages"] = ["Démarrage", "Opération réussie"]
+    output = tmp_path / "test.gdb" / "model_buffer"
+    model_capture["parameters"] = [
+        {"name": "out_feature_class", "type": "Feature Class", "value": str(output),
+         "is_input": False, "dataset": True, "path": str(output), "paths": [str(output)]},
+    ]
+    monkeypatch.setitem(sys.modules, "arcpy", arcpy)
+    path = tmp_path / "localized-model.capture.json"
+    path.write_text(json.dumps(model_capture), encoding="utf-8")
+
+    assert capture.finish(path) == []
+    saved = json.loads(path.read_text(encoding="utf-8"))
+    assert saved["coverage_gap"] == "missing executing message"

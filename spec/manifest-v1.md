@@ -1,4 +1,4 @@
-# Provenance manifests for geospatial datasets — v1.0.0-draft.11
+# Provenance manifests for geospatial datasets — v1.0.0-draft.12
 
 **Status: draft.** Field names and semantics may still change; anything that does will be
 visible in this repository's history. The draft label comes off when a second, independent

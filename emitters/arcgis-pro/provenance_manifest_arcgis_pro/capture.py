@@ -33,11 +33,12 @@ when the value is a layer name; null when the parameter names no dataset.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
 from . import record as rec
-from .digest import DatasetDigest, dataset_digest
+from .digest import DatasetDigest, dataset_digest, split_container
 
 CAPTURE_VERSION = 1
 
@@ -120,6 +121,10 @@ def _norm(path: str) -> str:
     return str(path).replace("\\", "/").rstrip("/").lower()
 
 
+def _canonical_path(path: str) -> str:
+    return os.path.normcase(str(Path(path).resolve()))
+
+
 def writes_to_input(capture: dict) -> set[str]:
     """Outputs that are also inputs: the tool edited a dataset in place.
 
@@ -172,6 +177,23 @@ def _tool_id(tool: str | None) -> str:
 def finish(path: Path) -> list[Path]:
     """Write the manifest beside each output. Imports ArcPy."""
     capture = _load(path)
+    from . import model
+
+    tool_name = str(capture.get("tool") or "").lower()
+    model_candidate = (
+        tool_name.endswith(".model") or tool_name.startswith("t.") or capture.get("model_evidence")
+    )
+    if model_candidate:
+        if not model.is_model_capture(capture):
+            capture["coverage_gap"] = "missing executing message"
+            _save(path, capture)
+            return []
+        capture = model.enrich(capture)
+        if "coverage_gap" in capture:
+            _save(path, capture)
+            return []
+        _save(path, capture)
+        capture = start(path)
     if str(capture.get("tool") or "").lower() in VIEW_ONLY_TOOLS:
         return []  # no dataset written, so no record to write beside one
 
@@ -191,13 +213,29 @@ def finish(path: Path) -> list[Path]:
         )
         for p in capture.get("parameters", [])
     }
-    checks = [
-        rec.check(
-            f"{rec.PREFIX}:tool_succeeded",
-            succeeded,
-            f"{tool_id} finished with error code {capture.get('error_code')}",
-        )
-    ]
+    if capture.get("model_evidence"):
+        parent_tool = capture["model_evidence"].get("history_tool") or tool_id
+        checks = [
+            rec.check(
+                f"{rec.PREFIX}:parent_succeeded",
+                succeeded,
+                f"{parent_tool} finished with parent error code {capture.get('error_code')}",
+            ),
+            rec.check(
+                f"{rec.PREFIX}:inner_succeeded",
+                bool(capture["model_evidence"].get("inner_success_evidence")),
+                capture["model_evidence"].get("inner_success_evidence")
+                or "no inner success evidence",
+            ),
+        ]
+    else:
+        checks = [
+            rec.check(
+                f"{rec.PREFIX}:tool_succeeded",
+                succeeded,
+                f"{tool_id} finished with error code {capture.get('error_code')}",
+            )
+        ]
     input_crs = {
         path: arcgis._crs(path)
         for p in capture.get("parameters", [])
@@ -218,7 +256,12 @@ def finish(path: Path) -> list[Path]:
             "critical": False,
             "detail": "the tool read a subset of a layer, while the input digest covers the whole "
             "dataset: " + "; ".join(
-                f"{f['layer']} ({f.get('selection_count') or 0} selected"
+                f"{f['layer']} ("
+                + (
+                    f"{f['selection_count']} selected"
+                    if "selection_count" in f
+                    else f"{f.get('layer_count')} feature(s) in layer"
+                )
                 + (
                     f", definition query {f['definition_query']!r}"
                     if f.get("definition_query")
@@ -251,17 +294,45 @@ def finish(path: Path) -> list[Path]:
     engine = arcgis._engine()
     timing = TIMING.get(capture.get("inputs_hashed"), "unknown")
     in_place = {_norm(x) for x in writes_to_input(capture)}
+    if capture.get("model_evidence"):
+        import arcpy
+
     manifests = []
     outputs = [
         path for p in capture.get("parameters", []) if not p.get("is_input") for path in _paths(p)
     ]
     for out_path in outputs:
         out_checks = list(checks)
+        if capture.get("model_evidence") and capture.get("inputs_hashed") == "after_run":
+            shared = [
+                item.path for item in inputs
+                if _canonical_path(split_container(item.path)[0]) == _canonical_path(
+                    split_container(out_path)[0]
+                )
+            ]
+            if shared:
+                out_checks.append({
+                    "name": f"{rec.PREFIX}:input_container_includes_output",
+                    "passed": False,
+                    "critical": False,
+                    "detail": "the after-run input container digest includes the output and is "
+                    "not the input state read by the tool: " + "; ".join(shared),
+                })
         crs = None
         try:
+            if capture.get("model_evidence") and not arcpy.Exists(out_path):
+                raise FileNotFoundError(out_path)
             digest = dataset_digest(out_path)
         except (OSError, ValueError):
             digest = None
+        output_digests_taken_at = rec.utcnow()
+        if digest is None and capture.get("model_evidence"):
+            out_checks.append({
+                "name": f"{rec.PREFIX}:output_digested",
+                "passed": False,
+                "critical": False,
+                "detail": f"output does not exist or cannot be digested: {out_path}",
+            })
         if digest is not None and succeeded:
             if arcgis._has_crs_slot(out_path):
                 crs = arcgis._crs(out_path)
@@ -290,12 +361,16 @@ def finish(path: Path) -> list[Path]:
             messages=messages,
         )
         record[f"{rec.PREFIX}:launch"] = capture.get("launch")
+        if capture.get("model_evidence"):
+            record[f"{rec.PREFIX}:model_evidence"] = capture["model_evidence"]
+        if capture.get("timing_scope"):
+            record[f"{rec.PREFIX}:timing_scope"] = capture["timing_scope"]
+            record[f"{rec.PREFIX}:input_digests_taken_at"] = capture.get("input_digests_taken_at")
+            record[f"{rec.PREFIX}:output_digests_taken_at"] = output_digests_taken_at
         if filters:
             record[f"{rec.PREFIX}:layer_filters"] = filters
         record[f"{rec.PREFIX}:input_digests_taken"] = timing
         if digest is None:
-            from .digest import split_container
-
             container, layer = split_container(out_path)
             digest = DatasetDigest(container.as_posix(), "0" * 64, "file", layer)
         sidecar = rec.sidecar_path(digest)

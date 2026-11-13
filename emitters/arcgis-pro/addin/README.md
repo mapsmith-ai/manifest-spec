@@ -77,8 +77,29 @@ Pro 3.7; where a case limits what a record proves, the record says so:
   writer they would claim an in-place edit of the dataset behind it. They are matched by name, so
   a tool not in that list is read as a writer. The autotest runs two of them (Make Feature Layer,
   Select Layer By Attribute).
-- **Not covered yet: models run from ModelBuilder.** No geoprocessing event fires for them. A model
-  run as a tool from code raises one event for the model and none for the tools inside it.
+- **ModelBuilder: first, deliberately narrow coverage.** For one interactive model with exactly one
+  directly executed `analysis.Buffer` and one identified output, the add-in correlates the model's
+  English `Executing (...)` history message with a unique process in the output's ArcGIS metadata lineage.
+  The manifest is for the inner operation, not for `t.Model`: canonical tool identity, normalized
+  output and tokenized command arguments must all agree. Timestamp alone never establishes the
+  parent run. Multi-step, nested, iterating, concurrent, repeated, failed or cancelled models,
+  ambiguous or missing history/metadata, duplicate lineage and unresolved correlations are explicit
+  coverage gaps, not manifests. Parent run ID, history tool, captured launch, observed model name
+  (only when independently known), inner-step source and raw metadata time stay separate;
+  `timing_scope=parent_model` applies because metadata time is not asserted as start or finish.
+  Inner success requires history evidence. Inputs are hashed after the run and must resolve through
+  an absolute dataset path or unique project map-layer evidence, never by guessing from the output
+  container. Reconstructed paths are absolute, canonicalized and confined to the project workspace;
+  UNC, traversal, aliases and outside-project paths are coverage gaps, and outside map sources are
+  rejected before ArcGIS reads them. A map-layer name must identify exactly one project layer;
+  duplicate names are ambiguous even when their row counts match. ModelBuilder layer filters record
+  neutral `layer_count` and `source_count` values, not a claim about selected IDs. Unresolved
+  arguments produce a failed inputs check; a missing output produces a failed output-digest check,
+  while unreadable metadata for an existing output is a coverage gap. Input and output digest
+  measurement times are recorded.
+  If input and output share a container, the after-run input container digest includes the output
+  and is explicitly **not** the input state read by the tool. A model run as a tool from code raises
+  one event for the model and none for the tools inside it, and is outside this interactive coverage.
 
 ## Autotest
 

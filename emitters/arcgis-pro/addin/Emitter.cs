@@ -30,8 +30,9 @@ namespace ProvenanceManifest
 
     // Measured on ArcGIS Pro 3.7.1 (2026-09-27, probe and autotest):
     // - GPExecuteToolEvent fires for the Geoprocessing pane, the Python window
-    //   and ExecuteToolAsync; not for a model run from ModelBuilder, and a model
-    //   run from code gives one event for the model and none for its tools.
+    //   and ExecuteToolAsync. ModelBuilder produces a parent model capture with
+    //   messages, not one event per inner tool; model identity and inner operations
+    //   are reconstructed from history and output metadata (measured on 3.7.2).
     // - With the run going to the project history (the default in the GUI) the
     //   start event carries every parameter; without it, the start carries none
     //   and the end carries them all.
@@ -112,6 +113,8 @@ namespace ProvenanceManifest
             {
                 ["capture_version"] = 1,
                 ["tool"] = e.Path,
+                ["capture_kind"] = e.Path == null ? "unknown" : e.Path.StartsWith("t.", StringComparison.OrdinalIgnoreCase) ? "model" : "tool",
+                ["project_path"] = Project.Current?.URI,
                 ["run_id"] = id,
                 ["launch"] = Launch(e.ID),
                 ["started_at"] = Now(),

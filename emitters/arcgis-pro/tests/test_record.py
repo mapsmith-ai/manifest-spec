@@ -107,3 +107,15 @@ def test_the_sidecar_of_a_container_layer_sits_beside_the_container():
 def test_a_record_without_checks_is_refused():
     with pytest.raises(ValueError):
         _record(checks=[])
+
+
+def test_writing_replaces_a_hardlinked_sidecar_without_touching_its_target(tmp_path):
+    target = tmp_path / "outside.json"
+    target.write_text("do not change", encoding="utf-8")
+    sidecar = tmp_path / "output.provenance.json"
+    sidecar.hardlink_to(target)
+
+    rec.write(_record(), sidecar)
+
+    assert target.read_text(encoding="utf-8") == "do not change"
+    assert sidecar.read_text(encoding="utf-8").startswith("{")

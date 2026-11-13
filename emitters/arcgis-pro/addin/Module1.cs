@@ -32,8 +32,9 @@ namespace ProvenanceManifest
                 if (!enabled) return true;
                 _emitter = new Emitter();
                 _gpToken = GPExecuteToolEvent.Subscribe(_emitter.OnToolEvent, true);
-                // Measurement for ModelBuilder, which raises no tool event: does a
-                // model run add to the project history? Logged, not yet acted on.
+                // ModelBuilder produces a parent history entry and messages, not
+                // one event per inner tool; history remains useful evidence for
+                // the metadata-based reconstruction in capture.py.
                 _historyToken = ProjectItemsChangedEvent.Subscribe(Emitter.OnProjectItemsChanged, true);
                 if (autotest) Autotest.Arm(_emitter);
             }

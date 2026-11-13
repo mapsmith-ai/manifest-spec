@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .digest import DatasetDigest
 
-SPEC_VERSION = "1.0.0-draft.11"
+SPEC_VERSION = "1.0.0-draft.12"
 PRODUCER = "provenance-manifest-qgis"
 PRODUCER_VERSION = "0.0.1"
 # Every key the specification does not define carries this prefix (spec 3.5,

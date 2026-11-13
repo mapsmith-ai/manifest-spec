@@ -18,7 +18,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-SPEC_VERSION = "1.0.0-draft.11"
+SPEC_VERSION = "1.0.0-draft.12"
 
 
 def _utcnow() -> str:
